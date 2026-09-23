@@ -39,7 +39,8 @@ def test_root_serves_dashboard_html(isolated_app):
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     html = response.text
-    assert "EcoEye Ambient Sensing" in html
+    assert "EcoEye" in html
+    assert "Asistencia Visual" in html
     assert 'data-theme="dark"' in html
     assert "ecoeye-logo-full-dark.svg" in html
     assert "app.js" in html
@@ -50,7 +51,7 @@ def test_dashboard_route_serves_html(isolated_app):
     response = isolated_app.get("/dashboard/")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert "Radar de Navegacion Espacial" in response.text
+    assert "Guia de Camino" in response.text
 
 
 def test_css_stylesheets_served(isolated_app):
@@ -135,3 +136,43 @@ def test_dashboard_end_to_end_telemetry_flow(isolated_app):
     data = res_stats.json()
     assert data["storage"]["currency_detections_count"] == 1
     assert data["storage"]["ocr_readings_count"] == 1
+
+
+def test_multi_view_spa_structure(isolated_app):
+    """Verify that all 5 SPA application views and navigation tabs are present in HTML."""
+    response = isolated_app.get("/")
+    assert response.status_code == 200
+    html = response.text
+
+    # 5 Main Views
+    assert 'id="view-dashboard"' in html
+    assert 'id="view-vision"' in html
+    assert 'id="view-history"' in html
+    assert 'id="view-config"' in html
+    assert 'id="view-audit"' in html
+
+    # Navigation Tabs
+    assert 'data-view="dashboard"' in html
+    assert 'data-view="vision"' in html
+    assert 'data-view="history"' in html
+    assert 'data-view="config"' in html
+    assert 'data-view="audit"' in html
+
+    # Toast Notifications Container
+    assert 'id="toast-container"' in html
+
+
+def test_auth_modal_and_judge_macros(isolated_app):
+    """Verify authentication modal, judge quick-access buttons, and user badge exist."""
+    response = isolated_app.get("/")
+    assert response.status_code == 200
+    html = response.text
+
+    assert 'id="auth-modal"' in html
+    assert 'data-user="medico"' in html
+    assert 'data-user="cuidador"' in html
+    assert 'data-user="admin"' in html
+    assert 'id="btn-login-submit"' in html
+    assert 'id="user-profile-widget"' in html
+    assert 'id="btn-header-logout"' in html
+

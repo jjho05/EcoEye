@@ -2,17 +2,17 @@
 <html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EcoEye — Plataforma de Telemetria Biomedica y Vision Asistiva</title>
-  <meta name="description" content="Dashboard clinico y de vision asistiva en el borde para personas con discapacidad visual y adultos mayores.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>EcoEye — Asistencia Visual y Monitoreo del Hogar</title>
+  <meta name="description" content="Plataforma de asistencia para personas con discapacidad visual y monitoreo familiar continuo de caídas y glucosa.">
   
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
   
-  <!-- Google Fonts: Outfit, Inter, JetBrains Mono -->
+  <!-- Google Fonts: Outfit & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
   
   <!-- Design System & Stylesheets -->
   <link rel="stylesheet" href="./css/tokens.css">
@@ -22,31 +22,86 @@
 </head>
 <body>
 
-  <!-- Top Sticky Navigation Bar -->
+  <!-- Top Navigation Header -->
   <header class="app-header">
-    <div class="brand-wrapper" title="EcoEye Edge Gateway">
-      <img id="brand-logo-img" class="brand-logo-img" src="./assets/branding/ecoeye-logo-full-dark.svg" alt="EcoEye Medical Sensing" />
+    <div class="brand-wrapper" title="EcoEye - Asistencia y Cuidado">
+      <img id="brand-logo-img" class="brand-logo-img" src="./assets/branding/ecoeye-logo-full-dark.svg" alt="EcoEye" />
     </div>
 
+    <!-- Desktop Navigation Tabs (Hidden on mobile) -->
+    <nav class="nav-tabs-wrapper desktop-nav-tabs" aria-label="Navegacion Principal">
+      <button class="nav-tab-btn active" data-view="dashboard" title="Panel Principal del Hogar (1 clic)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span>Inicio</span>
+      </button>
+
+      <button class="nav-tab-btn" data-view="vision" title="Asistencia Visual IA y Detecciones (1 clic)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+        <span>Gafas IA</span>
+      </button>
+
+      <button class="nav-tab-btn" data-view="history" title="Historial Clínico y Registro de Signos Vitales (1 clic)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+        </svg>
+        <span>Historial</span>
+      </button>
+
+      <button class="nav-tab-btn" data-view="config" title="Ajustes de Parámetros y Umbrales (1 clic)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span>Ajustes</span>
+      </button>
+
+      <button class="nav-tab-btn" data-view="audit" title="Diagnóstico de Hardware y Logs Edge (1 clic)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        <span>Diagnóstico</span>
+      </button>
+    </nav>
+
+    <!-- Header Controls & User Info -->
     <div class="header-controls">
-      <div id="node-status-pill" class="status-pill normal">
-        <span class="status-dot animate-status-live"></span>
-        <span id="node-status-text">EDGE ACTIVO</span>
+      <!-- Active User Profile Pill (Opens Role & System Popover in 1 Click) -->
+      <div id="user-profile-widget" class="user-profile-badge" title="Cambiar rol de usuario o ajustes (1 clic)" aria-label="Perfil y rol de usuario" role="button" tabindex="0">
+        <div id="user-avatar-circle" class="user-avatar-circle">J</div>
+        <div class="user-meta">
+          <span id="header-user-name" class="user-name-text">Modo Evaluador</span>
+          <span id="header-user-role" class="user-role-label">Juez HackaTec</span>
+        </div>
+        <svg class="dropdown-chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
       </div>
 
-      <!-- Battery / Hardware Indicator -->
-      <div class="status-pill info" title="Nivel de Bateria Vestible">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="1" y="6" width="18" height="12" rx="2"></rect>
-          <line x1="23" y1="11" x2="23" y2="13"></line>
-        </svg>
-        <span>98%</span>
+      <!-- Edge Status Pill (Compact) -->
+      <div id="node-status-pill" class="status-pill normal" title="Conexión Edge Local">
+        <span class="status-dot"></span>
+        <span id="node-status-text">EN LÍNEA</span>
       </div>
+
+      <!-- Logout Button (Quick Action) -->
+      <button id="btn-header-logout" class="btn-icon-pill" title="Cerrar sesión" aria-label="Cerrar sesion">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </button>
 
       <!-- Theme Switcher -->
-      <button id="theme-toggle-btn" class="btn-icon-pill" title="Alternar tema claro/oscuro" aria-label="Alternar tema">
+      <button id="theme-toggle-btn" class="btn-icon-pill" title="Cambiar tema claro/oscuro (1 clic)" aria-label="Cambiar tema">
         <span id="theme-toggle-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
             <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -62,339 +117,744 @@
     </div>
   </header>
 
-  <!-- Main Content Shell -->
+  <!-- Main Container -->
   <main class="app-container">
 
-    <!-- Hero Context Banner -->
-    <section class="system-hero animate-fade-in">
-      <div class="hero-info">
-        <span class="hero-tag">Ecosistema Vestible Asistivo · HackaTec Regional</span>
-        <h1 class="hero-title">EcoEye Ambient Sensing & Assistive AI</h1>
-        <p class="hero-subtitle">
-          Plataforma de borde para personas con discapacidad visual y adultos mayores. Integra visión artificial para reconocimiento de efectivo y lectura OCR, radar háptico de proximidad, y detección perimetral de caídas WiFi CSI sin cámaras invasivas.
-        </p>
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- VISTA 1: PANEL DEL HOGAR Y MONITOREO DEL FAMILIAR                     -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <section id="view-dashboard" class="app-view active">
+
+      <!-- Patient Peace-of-Mind Hero Banner -->
+      <div class="patient-status-hero">
+        <div class="patient-info">
+          <div class="patient-avatar-large">J</div>
+          <div>
+            <h1 class="patient-name">Don Jesús Olvera</h1>
+            <span class="patient-meta-text">Adulto Mayor (82 años) · Sala de Estar · EcoEye Conectado</span>
+          </div>
+        </div>
+
+        <div id="patient-status-indicator" class="patient-status-box">
+          <span class="patient-status-dot"></span>
+          <span id="patient-status-text" class="patient-status-text">Todo tranquilo en el hogar</span>
+        </div>
       </div>
 
-      <div class="hero-metrics">
-        <div class="metric-pill">
-          <span class="metric-pill-label">Dispositivo Edge</span>
-          <span id="metric-device-id" class="metric-pill-value">ecoeye-edge-001</span>
+      <!-- Collapsible Demo Sandbox (Clean & Non-Intrusive) -->
+      <details class="demo-tools-accordion" open>
+        <summary class="demo-tools-summary">
+          <div class="demo-tools-summary-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span>Simulador de Demostracion (Jueces HackaTec)</span>
+          </div>
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">7 Simulaciones ▼</span>
+        </summary>
+        <div class="demo-tools-grid">
+          <button id="btn-demo-bill-200" class="btn-action btn-secondary-action">Billete $200</button>
+          <button id="btn-demo-bill-500" class="btn-action btn-secondary-action">Billete $500</button>
+          <button id="btn-demo-ocr-meds" class="btn-action btn-secondary-action">Leer Medicina</button>
+          <button id="btn-demo-fall-alert" class="btn-action btn-secondary-action" style="color:var(--status-critical);">Simular Caida</button>
+          <button id="btn-demo-obstacle-near" class="btn-action btn-secondary-action" style="color:var(--status-warning);">Obstaculo Cerca</button>
+          <button id="btn-demo-hypo-glucose" class="btn-action btn-secondary-action">Glucosa Baja</button>
+          <button id="btn-demo-reset-normal" class="btn-action btn-primary-action">Restablecer Normal</button>
         </div>
-        <div class="metric-pill">
-          <span class="metric-pill-label">Tiempo Activo</span>
-          <span id="metric-uptime" class="metric-pill-value">En linea</span>
-        </div>
-        <div class="metric-pill">
-          <span class="metric-pill-label">Cola Cifrada</span>
-          <span id="metric-queue-pending" class="metric-pill-value">0</span>
-        </div>
+      </details>
+
+      <!-- 4 Core Health & Safety Cards -->
+      <div class="dashboard-grid-cards">
+
+        <!-- Card 1: Monitoreo de Caídas (WiFi CSI) -->
+        <article class="health-card">
+          <div class="card-top">
+            <div class="card-title-group">
+              <div class="card-icon" style="color:var(--status-critical);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <line x1="19" y1="8" x2="19" y2="14"></line>
+                  <line x1="22" y1="11" x2="16" y2="11"></line>
+                </svg>
+              </div>
+              <div>
+                <h2 class="card-title">Proteccion de Caidas</h2>
+                <span class="card-subtitle">Sensor perimetral WiFi sin camaras invasivas</span>
+              </div>
+            </div>
+            <span id="fall-status-pill" class="status-pill normal">SIN INCIDENTES</span>
+          </div>
+
+          <div style="margin: 0.5rem 0;">
+            <div class="metric-row">
+              <span id="fall-count-display" class="metric-giant">0</span>
+              <span class="metric-unit">caidas registradas hoy</span>
+            </div>
+            <span id="fall-status-explanation" style="font-size:0.88rem; color:var(--text-secondary); display:block; margin-top:0.4rem;">
+              El paciente se encuentra en reposo normal. En caso de impacto, las gafas y el sistema notificaran de inmediato.
+            </span>
+          </div>
+
+          <canvas id="doppler-canvas" style="display:none;"></canvas>
+
+          <div style="margin-top:auto; padding-top:1rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.75rem; color:var(--text-muted)">Privacidad: 100% garantizada (Sin grabacion de video)</span>
+            <span style="font-size:0.75rem; font-weight:600; color:var(--brand-primary)">Monitoreo Activo</span>
+          </div>
+        </article>
+
+        <!-- Card 2: Glucosa en Sangre (BLE CGM) -->
+        <article class="health-card">
+          <div class="card-top">
+            <div class="card-title-group">
+              <div class="card-icon" style="color:var(--brand-primary);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 class="card-title">Glucosa en Sangre</h2>
+                <span class="card-subtitle">Monitoreo continuo conectado por Bluetooth</span>
+              </div>
+            </div>
+            <span id="glucose-status-pill" class="status-pill normal">NORMAL</span>
+          </div>
+
+          <div style="margin: 0.5rem 0;">
+            <div class="metric-row">
+              <span id="radial-glucose-val" class="metric-giant">98</span>
+              <span class="metric-unit">mg/dL</span>
+            </div>
+            <span id="glucose-diagnosis-text" class="metric-diagnosis">Nivel Normal (Rango Saludable)</span>
+            
+            <div class="range-bar-container">
+              <div class="range-bar-track">
+                <div id="glucose-range-pointer" class="range-bar-pointer" style="left: 45%;"></div>
+              </div>
+              <div class="range-labels">
+                <span>70 mg/dL (Min)</span>
+                <span>Objetivo ADA: 70 - 140 mg/dL</span>
+                <span>140 mg/dL (Max)</span>
+              </div>
+            </div>
+          </div>
+
+          <svg style="display:none;"><circle id="radial-bar-fill"></circle></svg>
+
+          <div style="margin-top:auto; padding-top:1rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.75rem; color:var(--text-muted)">Ultima lectura: Hace 3 min</span>
+            <span style="font-size:0.75rem; font-weight:600; color:var(--text-secondary)">Sensor GATT 0x1808</span>
+          </div>
+        </article>
+
+        <!-- Card 3: Asistente Visual (Gafas Inteligentes) -->
+        <article class="health-card">
+          <div class="card-top">
+            <div class="card-title-group">
+              <div class="card-icon" style="color:var(--brand-cyan);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </div>
+              <div>
+                <h2 class="card-title">Lo que Identifican las Gafas</h2>
+                <span class="card-subtitle">Lectura de billetes y medicamentos por voz</span>
+              </div>
+            </div>
+            <span id="currency-status-pill" class="status-pill normal">CONFIRMADO</span>
+          </div>
+
+          <div class="glasses-readout-box">
+            <span id="hud-target-label" class="glasses-readout-label">Ultimo elemento reconocido:</span>
+            <span id="hud-target-val" class="glasses-readout-text">Billete de $200 Pesos</span>
+            
+            <div class="glasses-action-row">
+              <span id="ocr-text-display" style="font-size:0.88rem; color:var(--text-secondary); font-style:italic;">
+                "PARACETAMOL 500 MG - 1 TABLETA CADA 8 HORAS"
+              </span>
+              <button id="btn-listen-glasses" class="btn-voice-large" title="Escuchar la voz que emiten las gafas" aria-label="Escuchar voz de las gafas">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+                <span>Escuchar en Voz Alta</span>
+              </button>
+            </div>
+          </div>
+
+          <div style="margin-top:0.85rem;">
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">
+              Probar Billetes de México:
+            </span>
+            <div class="chips-group">
+              <button class="chip-btn currency-chip-btn" data-denom="20">$20</button>
+              <button class="chip-btn currency-chip-btn" data-denom="50">$50</button>
+              <button class="chip-btn currency-chip-btn" data-denom="100">$100</button>
+              <button class="chip-btn currency-chip-btn active" data-denom="200">$200</button>
+              <button class="chip-btn currency-chip-btn" data-denom="500">$500</button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 4: Guía de Movilidad & Obstáculos -->
+        <article class="health-card">
+          <div class="card-top">
+            <div class="card-title-group">
+              <div class="card-icon" style="color:var(--brand-blue);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+                </svg>
+              </div>
+              <div>
+                <h2 class="card-title">Guia de Camino y Obstaculos</h2>
+                <span class="card-subtitle">Indicador haptico y sonoro para caminar con seguridad</span>
+              </div>
+            </div>
+            <span id="radar-status-pill" class="status-pill normal">CAMINO DESPEJADO</span>
+          </div>
+
+          <div class="corridor-grid">
+            <!-- Left Lane -->
+            <div id="corridor-left" class="corridor-lane clear">
+              <div class="corridor-svg-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+              </div>
+              <span class="lane-title">A la Izquierda</span>
+              <span id="sector-dist-left" class="lane-distance">1.6 m</span>
+              <span class="lane-status-text">Despejado</span>
+            </div>
+
+            <!-- Center Lane -->
+            <div id="corridor-center" class="corridor-lane clear">
+              <div class="corridor-svg-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="19" x2="12" y2="5"></line>
+                  <polyline points="5 12 12 5 19 12"></polyline>
+                </svg>
+              </div>
+              <span class="lane-title">Al Frente</span>
+              <span id="sector-dist-center" class="lane-distance">1.4 m</span>
+              <span class="lane-status-text">Paso libre</span>
+            </div>
+
+            <!-- Right Lane -->
+            <div id="corridor-right" class="corridor-lane clear">
+              <div class="corridor-svg-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </div>
+              <span class="lane-title">A la Derecha</span>
+              <span id="sector-dist-right" class="lane-distance">1.9 m</span>
+              <span class="lane-status-text">Despejado</span>
+            </div>
+          </div>
+
+          <div style="display:none;">
+            <div id="radar-blip-left"></div>
+            <div id="radar-blip-center"></div>
+            <div id="radar-blip-right"></div>
+            <div id="sector-card-left"></div>
+            <div id="sector-card-center"></div>
+            <div id="sector-card-right"></div>
+          </div>
+
+          <div style="margin-top:auto; padding-top:1rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.75rem; color:var(--text-muted)">Aviso vibratorio en armazon si hay algo a menos de 50 cm</span>
+            <span style="font-size:0.75rem; font-weight:600; color:var(--text-secondary)">Sonar Activo</span>
+          </div>
+        </article>
+
       </div>
+
+      <!-- Activity Feed Table -->
+      <div class="table-card">
+        <div class="table-header-title">
+          <div>
+            <h3>Registro de Actividad y Salud del Paciente</h3>
+            <span style="font-size:0.82rem; color:var(--text-muted);">Eventos de asistencia registrados automaticamente en tiempo real</span>
+          </div>
+          <span class="status-pill normal">TIEMPO REAL</span>
+        </div>
+
+        <table class="human-table">
+          <thead>
+            <tr>
+              <th>Origen</th>
+              <th>Actividad o Medicion</th>
+              <th>Detalle del Suceso</th>
+              <th>Hora</th>
+            </tr>
+          </thead>
+          <tbody id="events-table-body">
+            <tr>
+              <td><span class="status-pill normal">GAFAS IA</span></td>
+              <td style="font-weight:700; color:var(--text-main);">Reconocimiento de Dinero</td>
+              <td>Identifico billete de $200 MXN en mano</td>
+              <td style="font-family:var(--font-mono);">13:40</td>
+            </tr>
+            <tr>
+              <td><span class="status-pill normal">GLUCOSA</span></td>
+              <td style="font-weight:700; color:var(--text-main);">Medicion Continua</td>
+              <td>Nivel optimo: 98 mg/dL (Estable)</td>
+              <td style="font-family:var(--font-mono);">13:35</td>
+            </tr>
+            <tr>
+              <td><span class="status-pill info">LECTURA</span></td>
+              <td style="font-weight:700; color:var(--text-main);">Lectura de Medicamento</td>
+              <td>"Paracetamol 500 mg - 1 tableta cada 8 horas"</td>
+              <td style="font-family:var(--font-mono);">13:15</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
     </section>
 
-    <!-- Judge / Pitch Interactive Sandbox -->
-    <section class="demo-sandbox-bar">
-      <div class="sandbox-title-group">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-        </svg>
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- VISTA 2: GAFAS ASISTIVAS (EXPERIENCIA PARA BAJA VISION)               -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <section id="view-vision" class="app-view">
+      <div class="section-header">
         <div>
-          <h2 class="sandbox-title">Consola de Demostracion en Vivo (1-Click Pitch Macros)</h2>
-          <span class="sandbox-subtitle">Simula eventos de hardware y comprueba la reaccion instantanea del ecosistema</span>
+          <h2 class="section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            Asistente Visual y Voz de las Gafas
+          </h2>
+          <span class="section-caption">Diseñado para personas con discapacidad visual: texto de gran tamaño, contraste y locucion de voz inmediata.</span>
         </div>
       </div>
 
-      <div class="sandbox-buttons">
-        <button id="btn-demo-bill-200" class="btn-action btn-secondary-action">
-          Billete $200
-        </button>
-        <button id="btn-demo-bill-500" class="btn-action btn-secondary-action">
-          Billete $500
-        </button>
-        <button id="btn-demo-ocr-meds" class="btn-action btn-secondary-action">
-          Leer Receta Medica
-        </button>
-        <button id="btn-demo-obstacle-near" class="btn-action btn-secondary-action" style="color:var(--status-warning)">
-          Obstaculo 32 cm
-        </button>
-        <button id="btn-demo-fall-alert" class="btn-action btn-secondary-action" style="color:var(--status-critical)">
-          Simular Caida CSI
-        </button>
-        <button id="btn-demo-hypo-glucose" class="btn-action btn-secondary-action" style="color:var(--status-critical)">
-          Hipoglucemia 55
-        </button>
-        <button id="btn-demo-reset-normal" class="btn-action btn-primary-action">
-          Restablecer Nominal
-        </button>
-      </div>
-    </section>
-
-    <!-- Primary Bento Grid (Vision AI vs Radar) -->
-    <div class="bento-grid">
-
-      <!-- Column 1: Vision Artificial en Gafas Inteligentes -->
-      <article class="glass-card">
-        <div class="card-header-clean">
-          <div class="card-title-combo">
-            <div class="card-icon-pill">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
+      <div class="dashboard-grid-cards">
+        <article class="health-card" style="grid-column: 1 / -1;">
+          <div class="card-top">
+            <div class="card-title-group">
+              <div class="card-icon" style="color:var(--brand-primary);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+              </div>
+              <div>
+                <h3 class="card-title">Lo que la Persona Escucha por sus Gafas</h3>
+                <span class="card-subtitle">Simulador de audio y lectura visual aumentada</span>
+              </div>
             </div>
-            <div>
-              <h2 class="card-main-title">Vision Asistiva (Gafas Inteligentes HUD)</h2>
-              <span class="card-main-subtitle">Reconocimiento neuronal de efectivo y lectura OCR con sintesis de voz</span>
-            </div>
-          </div>
-          <span id="currency-status-pill" class="status-pill normal">CAMARA ACTIVA</span>
-        </div>
-
-        <!-- HUD Visor Frame -->
-        <div class="hud-visor-frame">
-          <div class="hud-grid-overlay"></div>
-          <div class="hud-laser-line animate-hud-scanner"></div>
-
-          <!-- Brackets -->
-          <div class="hud-corner-bracket tl"></div>
-          <div class="hud-corner-bracket tr"></div>
-          <div class="hud-corner-bracket bl"></div>
-          <div class="hud-corner-bracket br"></div>
-
-          <!-- Target Box -->
-          <div class="hud-target-box animate-reticle">
-            <span id="hud-target-label" class="hud-target-label">Billete de 200 Pesos</span>
-            <span id="hud-target-val" class="hud-target-val">$200 MXN</span>
-          </div>
-        </div>
-
-        <!-- Currency Selector Strip -->
-        <div style="margin-top: 1rem;">
-          <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">
-            Probar Denominacion de Moneda MXN:
-          </span>
-          <div class="currency-selector-strip">
-            <div class="currency-chip-btn" data-denom="20">
-              <span class="currency-chip-val">$20</span>
-              <span class="currency-chip-sub">Benito</span>
-            </div>
-            <div class="currency-chip-btn" data-denom="50">
-              <span class="currency-chip-val">$50</span>
-              <span class="currency-chip-sub">Morelos</span>
-            </div>
-            <div class="currency-chip-btn" data-denom="100">
-              <span class="currency-chip-val">$100</span>
-              <span class="currency-chip-sub">Sor Juana</span>
-            </div>
-            <div class="currency-chip-btn active" data-denom="200">
-              <span class="currency-chip-val">$200</span>
-              <span class="currency-chip-sub">Hidalgo</span>
-            </div>
-            <div class="currency-chip-btn" data-denom="500">
-              <span class="currency-chip-val">$500</span>
-              <span class="currency-chip-sub">Zaragoza</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- OCR Text Display -->
-        <div class="ocr-terminal-box">
-          <div class="ocr-terminal-header">
-            <span>Transcripcion OCR en Tiempo Real</span>
-            <span id="ocr-status-pill" class="status-pill info">SINTETIZADO</span>
-          </div>
-          <div id="ocr-text-display" class="ocr-terminal-text">
-            "PARACETAMOL 500 MG - TOMAR 1 TABLETA CADA 8 HORAS"
-          </div>
-          <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
-            <input id="ocr-custom-input" type="text" placeholder="Escribir texto personalizado para probar locucion..." style="flex:1; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:0.5rem 0.75rem; color:var(--text-main); font-size:0.82rem; outline:none;" />
-            <button id="btn-synthesize-ocr" class="btn-action btn-secondary-action">
-              Sintetizar
+            <button id="btn-snap-inference" class="btn-action btn-primary-action">
+              Tomar Foto con las Gafas (Prueba)
             </button>
           </div>
-        </div>
-      </article>
 
-      <!-- Column 2: Radar de Navegacion Espacial -->
-      <article class="glass-card">
-        <div class="card-header-clean">
-          <div class="card-title-combo">
-            <div class="card-icon-pill" style="color:var(--brand-cyan)">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="m4.93 4.93 4.24 4.24"></path>
-                <path d="m14.83 9.17 4.24-4.24"></path>
-                <path d="m14.83 14.83 4.24 4.24"></path>
-                <path d="m9.17 14.83-4.24 4.24"></path>
+          <div style="background:var(--bg-subtle); border-radius:var(--radius-md); padding:2rem; text-align:center; border:2px dashed var(--border-subtle); margin:1rem 0;">
+            <span style="font-size:0.85rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">
+              Lectura Activa en Voz Alta:
+            </span>
+            <p id="vision-tab-target-val" style="font-family:var(--font-display); font-size:2.5rem; font-weight:900; color:var(--brand-primary); margin:0.75rem 0;">
+              $200 PESOS
+            </p>
+            <p id="vision-tab-target-label" style="font-size:1.1rem; color:var(--text-secondary); max-width:600px; margin:0 auto;">
+              "Billete de doscientos pesos mexicanos identificado con éxito."
+            </p>
+          </div>
+
+          <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin-top:1rem;">
+            <input id="vision-custom-tts-input" type="text" placeholder="Escribe un texto para que las gafas lo digan..." value="Medicamento identificado: Paracetamol de 500 miligramos" class="form-input-clean" style="flex:1; min-height:48px; font-size:1rem;" />
+            <button id="btn-speak-tts" class="btn-voice-large">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
               </svg>
-            </div>
-            <div>
-              <h2 class="card-main-title">Radar de Navegacion Espacial</h2>
-              <span class="card-main-subtitle">Sonar perimetral 360° con alertas hapticas por sector</span>
-            </div>
+              <span>Locutar Ahora</span>
+            </button>
           </div>
-          <span id="radar-status-pill" class="status-pill normal">DESPEJADO</span>
-        </div>
+        </article>
+      </div>
+    </section>
 
-        <!-- Radar Circular Visualizer -->
-        <div class="radar-stage">
-          <div class="radar-circle">
-            <div class="radar-ring ring-1"></div>
-            <div class="radar-ring ring-2"></div>
-            <div class="radar-ring ring-3"></div>
-            <div class="radar-axis-h"></div>
-            <div class="radar-axis-v"></div>
-            <div class="radar-sweep-needle animate-radar-sweep"></div>
-
-            <!-- Interactive Obstacle Blips -->
-            <div id="radar-blip-left" class="radar-blip"></div>
-            <div id="radar-blip-center" class="radar-blip"></div>
-            <div id="radar-blip-right" class="radar-blip"></div>
-          </div>
-        </div>
-
-        <!-- Sector Cards -->
-        <div class="radar-sectors-grid">
-          <div id="sector-card-left" class="sector-card">
-            <div class="sector-card-name">Izquierda</div>
-            <div id="sector-dist-left" class="sector-card-dist">160 cm</div>
-          </div>
-          <div id="sector-card-center" class="sector-card">
-            <div class="sector-card-name">Centro / Frente</div>
-            <div id="sector-dist-center" class="sector-card-dist">140 cm</div>
-          </div>
-          <div id="sector-card-right" class="sector-card">
-            <div class="sector-card-name">Derecha</div>
-            <div id="sector-dist-right" class="sector-card-dist">190 cm</div>
-          </div>
-        </div>
-
-        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:1rem; text-align:center;">
-          Proximidad critica automática activada cuando cualquier sector detecta objetos a menos de 50 cm.
-        </p>
-      </article>
-
-    </div>
-
-    <!-- Secondary Dual Grid: Signos Vitales & WiFi CSI -->
-    <div class="dual-grid">
-
-      <!-- Biomédico 1: Glucómetro Continuo BLE GATT -->
-      <article class="glass-card">
-        <div class="card-header-clean">
-          <div class="card-title-combo">
-            <div class="card-icon-pill" style="color:var(--brand-primary)">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
-              </svg>
-            </div>
-            <div>
-              <h2 class="card-main-title">Glucosa en Sangre (CGM BLE)</h2>
-              <span class="card-main-subtitle">Servicio estandar GATT 0x1808 con evaluacion clinica</span>
-            </div>
-          </div>
-          <span id="glucose-status-pill" class="status-pill normal">EUGLUCEMIA</span>
-        </div>
-
-        <div class="gauge-container">
-          <!-- Radial Progress Gauge -->
-          <div class="radial-progress-box">
-            <svg class="radial-svg" viewBox="0 0 140 140">
-              <circle class="radial-bg-track" cx="70" cy="70" r="58"></circle>
-              <circle id="radial-bar-fill" class="radial-bar-fill" cx="70" cy="70" r="58"
-                stroke-dasharray="364.4" stroke-dashoffset="260"></circle>
-            </svg>
-            <div class="radial-center-text">
-              <span id="radial-glucose-val" class="radial-val">98</span>
-              <span class="radial-unit">mg/dL</span>
-            </div>
-          </div>
-
-          <!-- Diagnóstico y Rangos -->
-          <div class="glucose-details">
-            <div class="glucose-stat-row">
-              <span class="glucose-stat-label">Diagnostico:</span>
-              <span id="glucose-diagnosis-text" class="glucose-stat-val" style="color:var(--brand-primary)">EUGLUCEMIA</span>
-            </div>
-            <div class="glucose-stat-row">
-              <span class="glucose-stat-label">Rango Objetivo:</span>
-              <span class="glucose-stat-val">70 - 140 mg/dL</span>
-            </div>
-            <div class="glucose-stat-row">
-              <span class="glucose-stat-label">Protocolo:</span>
-              <span class="glucose-stat-val">BLE GATT 0x2A18</span>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <!-- Biomédico 2: Detección de Caídas WiFi CSI -->
-      <article class="glass-card">
-        <div class="card-header-clean">
-          <div class="card-title-combo">
-            <div class="card-icon-pill" style="color:var(--status-critical)">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-              </svg>
-            </div>
-            <div>
-              <h2 class="card-main-title">Monitor Doppler de Caidas (WiFi CSI)</h2>
-              <span class="card-main-subtitle">Analisis de perturbacion de radiofrecuencia sin camaras invasivas</span>
-            </div>
-          </div>
-          <span id="fall-status-pill" class="status-pill normal">NORMAL</span>
-        </div>
-
-        <!-- Doppler Waveform Oscilloscope Canvas -->
-        <div class="doppler-wave-frame">
-          <canvas id="doppler-canvas" class="doppler-canvas"></canvas>
-        </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.85rem;">
-          <div>
-            <span style="font-size:0.75rem; color:var(--text-muted); display:block;">Incidentes Registrados:</span>
-            <span id="fall-count-display" style="font-family:var(--font-mono); font-size:1.4rem; font-weight:800;">0</span>
-          </div>
-          <div style="text-align:right;">
-            <span style="font-size:0.75rem; color:var(--text-muted); display:block;">Metodo de Deteccion:</span>
-            <span style="font-size:0.82rem; font-weight:600; color:var(--text-main);">Filtro Hampel + Doppler</span>
-          </div>
-        </div>
-      </article>
-
-    </div>
-
-    <!-- Live Event Audit Feed -->
-    <section class="log-table-container">
-      <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- VISTA 3: HISTORIAL CLINICO (PARA EL MEDICO Y FAMILIAR)                -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <section id="view-history" class="app-view">
+      <div class="section-header">
         <div>
-          <h2 style="font-family:var(--font-display); font-size:1.1rem; font-weight:700;">Registro de Auditoria y Eventos en Borde</h2>
-          <span style="font-size:0.75rem; color:var(--text-muted);">Persistencia local SQLite WAL cifrada con AES-256-GCM y sincronizacion idempotente hacia Supabase</span>
+          <h2 class="section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+            </svg>
+            Historial de Salud del Paciente
+          </h2>
+          <span class="section-caption">Resumen clinico para compartir con el medico de cabecera o geriatra.</span>
         </div>
-        <span class="status-pill normal">CIFRADO AES-256</span>
+
+        <button id="btn-export-medical-report" class="btn-action btn-primary-action">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Descargar Resumen Medico (JSON)</span>
+        </button>
       </div>
 
-      <table class="modern-table">
-        <thead>
-          <tr>
-            <th style="width: 140px;">Modulo</th>
-            <th style="width: 260px;">Descripcion del Evento</th>
-            <th>Detalle Tecnico / Clinico</th>
-            <th style="width: 120px;">Hora</th>
-          </tr>
-        </thead>
-        <tbody id="events-table-body">
-          <tr>
-            <td colspan="4" style="text-align:center; padding:1.5rem; color:var(--text-muted)">
-              Sincronizando con SQLite WAL encriptado...
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="metrics-stats-grid">
+        <div class="health-card" style="padding:1.15rem;">
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">GLUCOSA PROMEDIO</span>
+          <span style="font-family:var(--font-display); font-size:1.8rem; font-weight:800; color:var(--text-main); margin-top:0.25rem;">96.4 <small style="font-size:0.8rem">mg/dL</small></span>
+          <span style="font-size:0.75rem; color:var(--status-normal); font-weight:600;">Rango Saludable</span>
+        </div>
+
+        <div class="health-card" style="padding:1.15rem;">
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">TIEMPO EN RANGO (TIR)</span>
+          <span style="font-family:var(--font-display); font-size:1.8rem; font-weight:800; color:var(--brand-primary); margin-top:0.25rem;">94.8%</span>
+          <span style="font-size:0.75rem; color:var(--text-secondary);">Meta medica > 70%</span>
+        </div>
+
+        <div class="health-card" style="padding:1.15rem;">
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">INCIDENTES DE CAIDA</span>
+          <span style="font-family:var(--font-display); font-size:1.8rem; font-weight:800; color:var(--status-normal); margin-top:0.25rem;">0</span>
+          <span style="font-size:0.75rem; color:var(--status-normal); font-weight:600;">Sin riesgos esta semana</span>
+        </div>
+
+        <div class="health-card" style="padding:1.15rem;">
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">ESTADO GENERAL</span>
+          <span style="font-family:var(--font-display); font-size:1.8rem; font-weight:800; color:var(--brand-primary); margin-top:0.25rem;">ESTABLE</span>
+          <span style="font-size:0.75rem; color:var(--text-secondary);">Cuidado continuo activo</span>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header-title">
+          <h3>Registro de Mediciones Continuas de Glucosa</h3>
+          <span style="font-size:0.8rem; color:var(--text-muted);">Valores normativos: 70 a 140 mg/dL</span>
+        </div>
+
+        <table class="human-table">
+          <thead>
+            <tr>
+              <th>ID Muestra</th>
+              <th>Nivel Medido</th>
+              <th>Evaluacion Medica</th>
+              <th>Tendencia</th>
+              <th>Hora</th>
+            </tr>
+          </thead>
+          <tbody id="history-glucose-table-body">
+            <tr>
+              <td>GLU-10492</td>
+              <td><strong style="color:var(--text-main); font-size:1rem;">94.2 mg/dL</strong></td>
+              <td><span class="status-pill normal">NORMAL</span></td>
+              <td>Estable</td>
+              <td style="font-family:var(--font-mono);">13:24</td>
+            </tr>
+            <tr>
+              <td>GLU-10491</td>
+              <td><strong style="color:var(--text-main); font-size:1rem;">98.0 mg/dL</strong></td>
+              <td><span class="status-pill normal">NORMAL</span></td>
+              <td>Estable</td>
+              <td style="font-family:var(--font-mono);">13:19</td>
+            </tr>
+            <tr>
+              <td>GLU-10490</td>
+              <td><strong style="color:var(--text-main); font-size:1rem;">102.5 mg/dL</strong></td>
+              <td><span class="status-pill normal">NORMAL</span></td>
+              <td>Descendiendo suavemente</td>
+              <td style="font-family:var(--font-mono);">13:14</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- VISTA 4: AJUSTES SENCILLOS DE CUIDADO                                -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <section id="view-config" class="app-view">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Ajustes de Alertas y Monitoreo
+          </h2>
+          <span class="section-caption">Configura los rangos de salud recomendados por el doctor y la sensibilidad de las alertas.</span>
+        </div>
+
+        <button id="btn-save-configuration" class="btn-action btn-primary-action">
+          Guardar Ajustes
+        </button>
+      </div>
+
+      <div class="dashboard-grid-cards">
+        <div class="config-group-card">
+          <h3 style="font-family:var(--font-display); font-size:1.15rem; font-weight:700;">Limites de Alerta de Glucosa</h3>
+          
+          <div class="form-item">
+            <label class="form-item-label">Nivel Minimo de Glucosa (Alerta de Azucar Baja)</label>
+            <span class="form-item-hint">Si el paciente baja de este numero, las gafas daran aviso sonoro de emergencia.</span>
+            <input id="cfg-glucose-min" type="number" value="70" class="form-input-clean" />
+          </div>
+
+          <div class="form-item">
+            <label class="form-item-label">Nivel Maximo de Glucosa (Alerta de Azucar Alta)</label>
+            <span class="form-item-hint">Notifica al cuidador si el nivel postprandial sobrepasa este limite.</span>
+            <input id="cfg-glucose-max" type="number" value="180" class="form-input-clean" />
+          </div>
+        </div>
+
+        <div class="config-group-card">
+          <h3 style="font-family:var(--font-display); font-size:1.15rem; font-weight:700;">Sensibilidad de Caidas y Radar</h3>
+
+          <div class="form-item">
+            <label class="form-item-label">Sensibilidad de Caidas en el Hogar</label>
+            <span class="form-item-hint">Nivel de proteccion para distinguir movimientos diarios de tropiezos reales.</span>
+            <input id="cfg-csi-variance" type="number" step="0.1" value="2.8" class="form-input-clean" />
+          </div>
+
+          <div class="form-item">
+            <label class="form-item-label">Tiempo de Confirmacion de Inmovilidad (segundos)</label>
+            <span class="form-item-hint">Tiempo que espera el sistema antes de llamar si la persona permanece en el suelo.</span>
+            <input id="cfg-csi-inactivity" type="number" step="0.5" value="4.0" class="form-input-clean" />
+          </div>
+        </div>
+
+        <div class="config-group-card" style="grid-column: 1 / -1;">
+          <h3 style="font-family:var(--font-display); font-size:1.15rem; font-weight:700;">Conexion con la Nube Familiar</h3>
+          
+          <div class="form-row-2col">
+            <div class="form-item">
+              <label class="form-item-label">Servidor Central Familiar (Nube Supabase)</label>
+              <input id="cfg-cloud-url" type="text" value="http://127.0.0.1:8000/api/v1/sync/telemetry" class="form-input-clean" />
+            </div>
+
+            <div class="form-item">
+              <label class="form-item-label">Identificador de las Gafas</label>
+              <input id="cfg-device-id" type="text" value="ecoeye-edge-001" class="form-input-clean" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- VISTA 5: DIAGNOSTICO Y CONEXION (MODO TECNICO)                         -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <section id="view-audit" class="app-view">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            Estado del Dispositivo y Sincronizacion
+          </h2>
+          <span class="section-caption">Verifica la memoria local de las gafas y el envio de datos a la nube.</span>
+        </div>
+
+        <button id="btn-flush-sync-queue" class="btn-action btn-primary-action">
+          Sincronizar Datos Ahora
+        </button>
+      </div>
+
+      <div class="metrics-stats-grid">
+        <div class="health-card" style="padding:1.15rem;">
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">PENDIENTES EN COLA</span>
+          <span id="audit-queue-pending" style="font-family:var(--font-display); font-size:1.8rem; font-weight:800; color:var(--text-main); margin-top:0.25rem;">0</span>
+          <span style="font-size:0.75rem; color:var(--status-normal);">Al dia</span>
+        </div>
+
+        <div class="health-card" style="padding:1.15rem;">
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">EN ENVIO</span>
+          <span id="audit-queue-progress" style="font-family:var(--font-display); font-size:1.8rem; font-weight:800; color:var(--brand-cyan); margin-top:0.25rem;">0</span>
+          <span style="font-size:0.75rem; color:var(--text-secondary);">Transito OK</span>
+        </div>
+
+        <div class="health-card" style="padding:1.15rem;">
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">SINCRONIZADOS EN NUBE</span>
+          <span id="audit-queue-synced" style="font-family:var(--font-display); font-size:1.8rem; font-weight:800; color:var(--brand-primary); margin-top:0.25rem;">142</span>
+          <span style="font-size:0.75rem; color:var(--brand-primary); font-weight:600;">Respaldados</span>
+        </div>
+
+        <div class="health-card" style="padding:1.15rem;">
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">FALLOS DE ENVIO</span>
+          <span id="audit-queue-failed" style="font-family:var(--font-display); font-size:1.8rem; font-weight:800; color:var(--status-normal); margin-top:0.25rem;">0</span>
+          <span style="font-size:0.75rem; color:var(--status-normal);">Sin errores</span>
+        </div>
+      </div>
     </section>
 
   </main>
 
-  <!-- Application Bootstrap -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- MOBILE BOTTOM NAVIGATION DOCK (iOS / ANDROID STANDARD)                 -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <nav class="mobile-bottom-nav" aria-label="Navegacion Movil">
+    <button class="mobile-nav-btn active" data-view="dashboard" aria-label="Inicio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>Inicio</span>
+    </button>
+
+    <button class="mobile-nav-btn" data-view="vision" aria-label="Gafas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+      <span>Gafas</span>
+    </button>
+
+    <button class="mobile-nav-btn" data-view="history" aria-label="Salud">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+      </svg>
+      <span>Salud</span>
+    </button>
+
+    <button class="mobile-nav-btn" data-view="config" aria-label="Ajustes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+      <span>Ajustes</span>
+    </button>
+
+    <button class="mobile-nav-btn" data-view="audit" aria-label="Estado">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      <span>Estado</span>
+    </button>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL DE INICIO DE SESION & SELECCION DE ROL                           -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div id="auth-modal" class="auth-overlay">
+    <div class="auth-card" style="position:relative;">
+      <button id="btn-close-auth-modal" class="btn-icon-pill" style="position:absolute; top:1.25rem; right:1.25rem; width:34px; height:34px;" title="Cerrar ventana" aria-label="Cerrar ventana">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div style="text-align:center; margin-bottom:1.5rem;">
+        <img id="auth-modal-logo" src="./assets/branding/ecoeye-logo-full-dark.svg" alt="EcoEye" style="height:36px; width:auto; margin:0 auto;" />
+        <h2 style="font-family:var(--font-display); font-size:1.35rem; font-weight:800; margin-top:0.75rem; color:var(--text-main);">
+          ¿Quien esta usando EcoEye hoy?
+        </h2>
+        <span style="font-size:0.85rem; color:var(--text-secondary); display:block; margin-top:0.25rem;">
+          Selecciona tu perfil para ingresar con un solo clic:
+        </span>
+      </div>
+
+      <!-- Human Role Selection Cards (Vector SVGs) -->
+      <div class="role-picker-grid">
+        <button class="role-card-btn quick-role-btn" data-user="medico" data-pass="clinica2026!">
+          <div class="role-card-meta">
+            <div class="role-card-avatar" style="border-color:var(--brand-cyan); color:var(--brand-cyan);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"></path>
+                <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"></path>
+                <circle cx="20" cy="10" r="2"></circle>
+              </svg>
+            </div>
+            <div>
+              <span class="role-card-name">Dra. Carmen Santos (Medico)</span>
+              <span class="role-card-desc">Consulta de glucosa, signos vitales y recetas</span>
+            </div>
+          </div>
+          <span class="status-pill normal">INGRESAR</span>
+        </button>
+
+        <button class="role-card-btn quick-role-btn" data-user="cuidador" data-pass="familiar2026!">
+          <div class="role-card-meta">
+            <div class="role-card-avatar" style="border-color:var(--brand-primary); color:var(--brand-primary);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div>
+              <span class="role-card-name">Luis Morales (Familiar / Cuidador)</span>
+              <span class="role-card-desc">Alertas de caidas y asistencia del ser querido</span>
+            </div>
+          </div>
+          <span class="status-pill info">INGRESAR</span>
+        </button>
+
+        <button class="role-card-btn quick-role-btn" data-user="admin" data-pass="ecoeye2026!">
+          <div class="role-card-meta">
+            <div class="role-card-avatar" style="border-color:var(--status-warning); color:var(--status-warning);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </div>
+            <div>
+              <span class="role-card-name">Administrador de Hardware</span>
+              <span class="role-card-desc">Calibracion de sensores y parametros tecnicos</span>
+            </div>
+          </div>
+          <span class="status-pill warning">INGRESAR</span>
+        </button>
+
+        <button id="btn-quick-judge" class="role-card-btn" style="border:1px dashed var(--border-subtle);">
+          <div class="role-card-meta">
+            <div class="role-card-avatar" style="border-color:var(--text-muted); color:var(--text-muted);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="5"></circle>
+                <path d="M20 21a8 8 0 1 0-16 0"></path>
+              </svg>
+            </div>
+            <div>
+              <span class="role-card-name">Acceso Evaluador HackaTec</span>
+              <span class="role-card-desc">Modo demostracion para jueces del jurado</span>
+            </div>
+          </div>
+          <span class="status-pill normal">DEMO</span>
+        </button>
+      </div>
+
+      <!-- Quick Session Reset Action -->
+      <button id="btn-modal-logout-action" class="btn-action" style="margin-top:1rem; width:100%; border:1px solid var(--border-subtle); background:transparent; color:var(--text-secondary); font-size:0.82rem; border-radius:var(--radius-sm); padding:0.6rem; cursor:pointer;">
+        Cerrar Sesion y Volver a Modo Juez
+      </button>
+
+      <!-- Optional Form for custom users -->
+      <details style="margin-top:1rem; border-top:1px solid var(--border-subtle); padding-top:0.75rem;">
+        <summary style="font-size:0.8rem; color:var(--text-muted); cursor:pointer; font-weight:600;">O ingresar con usuario y contraseña manual</summary>
+        <form id="auth-form" style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.75rem;" onsubmit="return false;">
+          <input id="login-username" type="text" placeholder="Usuario" class="form-input-clean" />
+          <input id="login-password" type="password" placeholder="Contraseña" class="form-input-clean" />
+          <button id="btn-login-submit" class="btn-action btn-primary-action" style="width:100%;">
+            Iniciar Sesion
+          </button>
+        </form>
+      </details>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="./js/api.js"></script>
   <script src="./js/app.js"></script>
 </body>
 </html>

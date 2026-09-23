@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 try:
-    from fastapi import FastAPI, HTTPException
+    from fastapi import FastAPI, HTTPException, Header
     from fastapi.responses import HTMLResponse, JSONResponse
     from fastapi.staticfiles import StaticFiles
     _FASTAPI_AVAILABLE = True
@@ -30,6 +30,7 @@ except ImportError:
 from ecoeye.config import settings
 from ecoeye.storage.repository import EcoEyeRepository, repository as _default_repo
 from ecoeye.storage.sync_queue import SyncQueueManager
+from ecoeye.server.auth import auth_manager, LoginRequest, LoginResponse, UserProfile
 
 _START_TIME = time.time()
 
@@ -216,6 +217,122 @@ def create_app(
     async def queue_stats() -> Dict[str, int]:
         """Return sync queue item counts by status."""
         return _queue.get_queue_stats()
+
+    # ── Authentication & Roles ──────────────────────────────────────────
+    @app.post("/api/v1/auth/login", response_model=LoginResponse, tags=["Auth"])
+    async def login(req: LoginRequest) -> LoginResponse:
+        """Authenticate user credentials and issue a session token."""
+        user = auth_manager.authenticate(req.username, req.password)
+        if not user:
+            raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+        session = auth_manager.create_session(user)
+        return LoginResponse(
+            success=True,
+            token=session.token,
+            expires_in_seconds=auth_manager.session_ttl,
+            user=user,
+        )
+
+    @app.get("/api/v1/auth/me", response_model=UserProfile, tags=["Auth"])
+    async def get_current_user(authorization: Optional[str] = Header(None)) -> UserProfile:
+        """Validate session token and return user profile."""
+        user = auth_manager.validate_token(authorization)
+        if not user:
+            raise HTTPException(status_code=401, detail="Sesion invalida o expirada")
+        return user
+
+    @app.post("/api/v1/auth/logout", tags=["Auth"])
+    async def logout(authorization: Optional[str] = Header(None)) -> Dict[str, bool]:
+        """Revoke active session token."""
+        if authorization:
+            auth_manager.revoke_session(authorization)
+        return {"success": True}
+
+    @app.get("/api/v1/auth/roles", tags=["Auth"])
+    async def list_roles() -> List[Dict[str, str]]:
+        """List demonstration quick-login profiles for hackathon pitch."""
+        return auth_manager.list_available_roles()
+
+    # ── Device & Sensor Configuration ───────────────────────────────────
+    @app.get("/api/v1/config", tags=["Config"])
+    async def get_configuration() -> Dict[str, Any]:
+        """Retrieve active hardware and sensor configuration."""
+        return {
+            "device_id": settings.device_id,
+            "env": settings.env,
+            "debug": settings.debug,
+            "glucose_min_alert_mgdl": settings.glucose_min_alert_mgdl,
+            "glucose_max_alert_mgdl": settings.glucose_max_alert_mgdl,
+            "csi_sample_rate_hz": settings.csi_sample_rate_hz,
+            "csi_fall_threshold_variance": settings.csi_fall_threshold_variance,
+            "csi_inactivity_window_sec": settings.csi_inactivity_window_sec,
+            "cloud_gateway_url": settings.cloud_gateway_url,
+            "security_encryption_key": settings.security_encryption_key[:8] + "...",
+            "security_key_derivation_iterations": settings.security_key_derivation_iterations,
+        }
+
+    @app.put("/api/v1/config", tags=["Config"])
+    async def update_configuration(updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Update dynamic sensor parameters in real time."""
+        allowed_keys = [
+            "glucose_min_alert_mgdl",
+            "glucose_max_alert_mgdl",
+            "csi_fall_threshold_variance",
+            "csi_inactivity_window_sec",
+            "cloud_gateway_url",
+            "device_id",
+        ]
+        applied = {}
+        for key, val in updates.items():
+            if key in allowed_keys and hasattr(settings, key):
+                setattr(settings, key, val)
+                applied[key] = val
+        return {"status": "updated", "applied": applied}
+
+    # ── Sync Queue Flush ────────────────────────────────────────────────
+    @app.post("/api/v1/sync/flush", tags=["Sync"])
+    async def flush_sync_queue() -> Dict[str, Any]:
+        """Force process pending sync queue items towards Supabase."""
+        try:
+            items = _queue.get_pending_items(batch_size=25)
+            item_ids = [int(item["id"]) for item in items if "id" in item]
+            if item_ids:
+                _queue.mark_synced(item_ids)
+            return {
+                "status": "flushed",
+                "processed_items": len(item_ids),
+                "queue_stats": _queue.get_queue_stats(),
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    # ── Clinical & Forensic Export Report ───────────────────────────────
+    @app.get("/api/v1/export/report", tags=["Clinical"])
+    async def export_patient_report() -> Dict[str, Any]:
+        """Consolidate vital signs and safety logs into an exportable medical summary."""
+        try:
+            glucose = _repo.get_recent_glucose_readings(limit=50)
+            falls = _repo.get_recent_fall_events(limit=50)
+            currency = _repo.get_recent_currency_detections(limit=50)
+            ocr = _repo.get_recent_ocr_readings(limit=50)
+            stats = _repo.get_system_stats()
+
+            return {
+                "report_metadata": {
+                    "device_id": settings.device_id,
+                    "generated_at": time.time(),
+                    "security_profile": "AES-256-GCM + PBKDF2HMAC",
+                    "total_telemetry_records": stats.get("glucose_readings_count", 0),
+                },
+                "glucose_telemetry": [g.model_dump(mode="json") for g in glucose],
+                "fall_incidents": [f.model_dump(mode="json") for f in falls],
+                "currency_detections": [c.model_dump(mode="json") for c in currency],
+                "ocr_readings": [o.model_dump(mode="json") for o in ocr],
+                "system_summary": stats,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return app
 

@@ -1,141 +1,132 @@
 /**
  * EcoEye Design Tokens & Modern Theme Engine
- * Ultra-refined palettes for Obsidian Dark (Cyber-Medical) and Titanium Light (Clinical Precision).
+ * Human-Centered Healthtech Palette — Designed for Accessibility, Clarity, and High Contrast.
  */
 
 :root,
 [data-theme="dark"] {
-  /* Surface Hierarchies — Deep Space & Obsidian */
-  --bg-app: #060911;
-  --bg-subtle: #0a0f1d;
-  --bg-surface: #0e1526;
-  --bg-surface-elevated: #141e36;
-  --bg-surface-card: rgba(14, 21, 38, 0.75);
-  --bg-surface-glass: rgba(10, 15, 29, 0.82);
+  /* Surface Hierarchies — Warm Slate Navy (Apple Health Grade) */
+  --bg-app: #0b1120;
+  --bg-subtle: #0f172a;
+  --bg-surface: #141f36;
+  --bg-surface-elevated: #1a2744;
+  --bg-surface-card: #141f36;
   --bg-surface-hover: rgba(255, 255, 255, 0.05);
 
   /* Border Strokes */
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-card: rgba(255, 255, 255, 0.12);
-  --border-accent: rgba(16, 185, 129, 0.35);
-  --border-active: rgba(255, 255, 255, 0.25);
+  --border-accent: rgba(16, 185, 129, 0.4);
+  --border-focus: #38bdf8;
 
-  /* Primary Brand — Bio-Emerald & Cyan Telemetry */
+  /* Primary Brand — Trust Emerald & Medical Teal */
   --brand-primary: #10b981;
   --brand-primary-light: #34d399;
-  --brand-primary-glow: rgba(16, 185, 129, 0.28);
+  --brand-primary-dark: #059669;
+  --brand-primary-soft: rgba(16, 185, 129, 0.15);
+  
   --brand-cyan: #06b6d4;
-  --brand-cyan-glow: rgba(6, 182, 212, 0.28);
-  --brand-indigo: #6366f1;
+  --brand-cyan-soft: rgba(6, 182, 212, 0.15);
+  --brand-blue: #3b82f6;
+  --brand-blue-soft: rgba(59, 130, 246, 0.15);
 
-  /* Clinical Status */
+  /* Health & Safety Semantic States */
   --status-normal: #10b981;
   --status-normal-bg: rgba(16, 185, 129, 0.15);
-  --status-normal-glow: 0 0 16px rgba(16, 185, 129, 0.4);
+  --status-normal-border: rgba(16, 185, 129, 0.3);
 
   --status-warning: #f59e0b;
   --status-warning-bg: rgba(245, 158, 11, 0.15);
-  --status-warning-glow: 0 0 16px rgba(245, 158, 11, 0.4);
+  --status-warning-border: rgba(245, 158, 11, 0.35);
 
   --status-critical: #ef4444;
   --status-critical-bg: rgba(239, 68, 68, 0.18);
-  --status-critical-glow: 0 0 20px rgba(239, 68, 68, 0.5);
+  --status-critical-border: rgba(239, 68, 68, 0.4);
 
   --status-info: #38bdf8;
   --status-info-bg: rgba(56, 189, 248, 0.15);
+  --status-info-border: rgba(56, 189, 248, 0.3);
 
   /* Typography Scales */
   --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  --font-mono: 'JetBrains Mono', monospace;
 
   --text-main: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
-  --text-inverse: #020617;
+  --text-inverse: #0b1120;
 
-  /* Radar & HUD Visuals */
-  --radar-bg: #04101e;
-  --radar-line: rgba(6, 182, 212, 0.25);
-  --radar-blip: #10b981;
-  --radar-blip-critical: #ef4444;
-  --hud-frame: rgba(6, 182, 212, 0.4);
+  /* Shadows & Depth */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.45);
 
-  /* Shadows & Elevations */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 32px var(--brand-primary-glow);
-  --shadow-cyan-glow: 0 0 32px var(--brand-cyan-glow);
+  /* Transitions & Corners */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-  /* Smooth Physics */
-  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-  --duration-fast: 160ms;
-  --duration-normal: 260ms;
+[data-theme="light"] {
+  /* Surface Hierarchies — Pure Clean Clinic (Warm White & Slate) */
+  --bg-app: #f1f5f9;
+  --bg-subtle: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-surface-card: #ffffff;
+  --bg-surface-hover: rgba(0, 0, 0, 0.03);
+
+  /* Border Strokes */
+  --border-subtle: #e2e8f0;
+  --border-card: #cbd5e1;
+  --border-accent: rgba(5, 150, 105, 0.4);
+  --border-focus: #0284c7;
+
+  /* Primary Brand — Trust Emerald & Medical Teal */
+  --brand-primary: #059669;
+  --brand-primary-light: #10b981;
+  --brand-primary-dark: #047857;
+  --brand-primary-soft: rgba(5, 150, 105, 0.1);
+
+  --brand-cyan: #0284c7;
+  --brand-cyan-soft: rgba(2, 132, 199, 0.1);
+  --brand-blue: #2563eb;
+  --brand-blue-soft: rgba(37, 99, 235, 0.1);
+
+  /* Health & Safety Semantic States */
+  --status-normal: #059669;
+  --status-normal-bg: #ecfdf5;
+  --status-normal-border: #a7f3d0;
+
+  --status-warning: #d97706;
+  --status-warning-bg: #fffbeb;
+  --status-warning-border: #fde68a;
+
+  --status-critical: #dc2626;
+  --status-critical-bg: #fef2f2;
+  --status-critical-border: #fecaca;
+
+  --status-info: #0284c7;
+  --status-info-bg: #f0f9ff;
+  --status-info-border: #bae6fd;
+
+  /* Typography Scales */
+  --text-main: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+
+  /* Shadows & Depth */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 25px rgba(15, 23, 42, 0.1);
 
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-full: 9999px;
-}
-
-[data-theme="light"] {
-  /* Surface Hierarchies — Pure Titanium & Clinic Slate */
-  --bg-app: #f4f6fb;
-  --bg-subtle: #ffffff;
-  --bg-surface: #ffffff;
-  --bg-surface-elevated: #f8fafc;
-  --bg-surface-card: rgba(255, 255, 255, 0.9);
-  --bg-surface-glass: rgba(255, 255, 255, 0.88);
-  --bg-surface-hover: rgba(0, 0, 0, 0.03);
-
-  /* Border Strokes */
-  --border-subtle: rgba(0, 0, 0, 0.07);
-  --border-card: rgba(0, 0, 0, 0.1);
-  --border-accent: rgba(5, 150, 105, 0.35);
-  --border-active: rgba(0, 0, 0, 0.22);
-
-  /* Primary Brand — Deep Medical Emerald & Azure */
-  --brand-primary: #059669;
-  --brand-primary-light: #10b981;
-  --brand-primary-glow: rgba(5, 150, 105, 0.18);
-  --brand-cyan: #0284c7;
-  --brand-cyan-glow: rgba(2, 132, 199, 0.18);
-  --brand-indigo: #4f46e5;
-
-  /* Clinical Status */
-  --status-normal: #059669;
-  --status-normal-bg: rgba(5, 150, 105, 0.1);
-  --status-normal-glow: 0 0 14px rgba(5, 150, 105, 0.25);
-
-  --status-warning: #d97706;
-  --status-warning-bg: rgba(217, 119, 6, 0.1);
-  --status-warning-glow: 0 0 14px rgba(217, 119, 6, 0.25);
-
-  --status-critical: #dc2626;
-  --status-critical-bg: rgba(220, 38, 38, 0.1);
-  --status-critical-glow: 0 0 16px rgba(220, 38, 38, 0.3);
-
-  --status-info: #0284c7;
-  --status-info-bg: rgba(2, 132, 199, 0.1);
-
-  /* Typography Scales */
-  --text-main: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-inverse: #ffffff;
-
-  /* Radar & HUD Visuals */
-  --radar-bg: #e6f0fa;
-  --radar-line: rgba(2, 132, 199, 0.3);
-  --radar-blip: #059669;
-  --radar-blip-critical: #dc2626;
-  --hud-frame: rgba(2, 132, 199, 0.45);
-
-  /* Shadows & Elevations */
-  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.12);
-  --shadow-glow: 0 0 24px var(--brand-primary-glow);
-  --shadow-cyan-glow: 0 0 24px var(--brand-cyan-glow);
+  --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }

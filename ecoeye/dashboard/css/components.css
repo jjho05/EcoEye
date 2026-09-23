@@ -1,48 +1,47 @@
 /**
  * EcoEye Components System
- * HUD Visor, Circular Radar, Radial Glucose Gauge, Doppler Waveform, and Interactive Controls.
+ * Human-Centered Healthtech Components: Friendly Cards, Accessible Badges,
+ * Mobility Corridor, Voice Triggers, and Role Selectors.
+ * 100% Vector SVG Icons — Zero Emojis.
  */
 
-/* ── Base Glass Card ─────────────────────────────────────────────────────── */
-.glass-card {
-  background-color: var(--bg-surface-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border-card);
+/* ── Base Health Card ─────────────────────────────────────────────────────── */
+.health-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-sm);
-  transition: transform var(--duration-fast) var(--ease-spring), border-color var(--duration-fast), box-shadow var(--duration-fast);
+  transition: var(--transition);
   position: relative;
-  overflow: hidden;
 }
 
-.glass-card:hover {
-  border-color: var(--border-active);
+.health-card:hover {
+  border-color: var(--border-card);
   box-shadow: var(--shadow-md);
 }
 
-.card-header-clean {
+.card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.25rem;
-  gap: 1rem;
-}
-
-.card-title-combo {
-  display: flex;
-  align-items: center;
+  margin-bottom: 1.15rem;
   gap: 0.75rem;
 }
 
-.card-icon-pill {
-  width: 40px;
-  height: 40px;
+.card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.card-icon {
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--bg-subtle);
   border: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -51,37 +50,216 @@
   flex-shrink: 0;
 }
 
-.card-main-title {
+.card-title {
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
   color: var(--text-main);
   line-height: 1.2;
 }
 
-.card-main-subtitle {
-  font-size: 0.75rem;
+.card-subtitle {
+  font-size: 0.82rem;
   color: var(--text-muted);
+  display: block;
+  margin-top: 0.15rem;
 }
 
-/* ── Status Badges ──────────────────────────────────────────────────────── */
+/* ── Patient Status Hero Banner ─────────────────────────────────────────── */
+.patient-status-hero {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+
+.patient-info {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.patient-avatar-large {
+  width: 58px;
+  height: 58px;
+  border-radius: var(--radius-full);
+  background: var(--brand-primary-soft);
+  border: 2px solid var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-primary);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.patient-name {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.patient-meta-text {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.patient-status-box {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background-color: var(--status-normal-bg);
+  border: 1px solid var(--status-normal-border);
+  border-radius: var(--radius-full);
+  padding: 0.65rem 1.35rem;
+}
+
+.patient-status-box.critical {
+  background-color: var(--status-critical-bg);
+  border-color: var(--status-critical-border);
+}
+
+.patient-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--status-normal);
+  box-shadow: 0 0 10px var(--status-normal);
+  animation: pulseLive 2s infinite;
+}
+
+.patient-status-box.critical .patient-status-dot {
+  background-color: var(--status-critical);
+  box-shadow: 0 0 12px var(--status-critical);
+}
+
+@keyframes pulseLive {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.patient-status-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--status-normal);
+}
+
+.patient-status-box.critical .patient-status-text {
+  color: var(--status-critical);
+}
+
+@media (max-width: 900px) {
+  .patient-status-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+  .patient-status-box {
+    width: 100%;
+    justify-content: center;
+  }
+  .patient-name {
+    font-size: 1.3rem;
+  }
+  .patient-meta-text {
+    font-size: 0.82rem;
+  }
+}
+
+/* ── Demo Tools Collapsible Accordion (Clean & Unobtrusive) ───────────────── */
+.demo-tools-accordion {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-top: 1.25rem;
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.demo-tools-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  cursor: pointer;
+  background-color: var(--bg-subtle);
+  user-select: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  list-style: none; /* Hide default triangle */
+}
+
+.demo-tools-summary::-webkit-details-marker {
+  display: none;
+}
+
+.demo-tools-summary:hover {
+  color: var(--text-main);
+  background-color: var(--bg-surface-hover);
+}
+
+.demo-tools-summary-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.demo-tools-grid {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  background-color: var(--bg-surface);
+}
+
+@media (max-width: 640px) {
+  .demo-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  .demo-tools-grid .btn-action {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.82rem;
+    min-height: 42px;
+  }
+}
+
+/* ── Status Pills ───────────────────────────────────────────────────────── */
 .status-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.25rem 0.75rem;
+  padding: 0.3rem 0.85rem;
   border-radius: var(--radius-full);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   flex-shrink: 0;
 }
 
 .status-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background-color: currentColor;
 }
@@ -89,513 +267,418 @@
 .status-pill.normal {
   background-color: var(--status-normal-bg);
   color: var(--status-normal);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid var(--status-normal-border);
 }
 
 .status-pill.warning {
   background-color: var(--status-warning-bg);
   color: var(--status-warning);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid var(--status-warning-border);
 }
 
 .status-pill.critical {
   background-color: var(--status-critical-bg);
   color: var(--status-critical);
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  border: 1px solid var(--status-critical-border);
 }
 
 .status-pill.info {
   background-color: var(--status-info-bg);
   color: var(--status-info);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  border: 1px solid var(--status-info-border);
 }
 
-/* ── Component 1: HUD Visor (Smart Glasses) ──────────────────────────────── */
-.hud-visor-frame {
-  width: 100%;
-  height: 220px;
-  background-color: #030712;
-  border: 1px solid var(--border-accent);
-  border-radius: var(--radius-md);
-  position: relative;
-  overflow: hidden;
+/* ── Big Metric Displays ────────────────────────────────────────────────── */
+.metric-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
-}
-
-.hud-grid-overlay {
-  position: absolute;
-  inset: 0;
-  background-image: 
-    linear-gradient(rgba(6, 182, 212, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(6, 182, 212, 0.06) 1px, transparent 1px);
-  background-size: 24px 24px;
-  pointer-events: none;
-}
-
-.hud-corner-bracket {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--brand-cyan);
-  pointer-events: none;
-}
-
-.hud-corner-bracket.tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
-.hud-corner-bracket.tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
-.hud-corner-bracket.bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
-.hud-corner-bracket.br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
-
-.hud-laser-line {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--brand-cyan), transparent);
-  box-shadow: 0 0 12px var(--brand-cyan);
-}
-
-.hud-target-box {
-  width: 200px;
-  height: 120px;
-  border: 1px dashed var(--brand-primary);
-  border-radius: var(--radius-sm);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  background-color: rgba(16, 185, 129, 0.05);
-  position: relative;
-  z-index: 2;
-  transition: all var(--duration-normal);
-}
-
-.hud-target-label {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--brand-cyan);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 700;
-}
-
-.hud-target-val {
-  font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--text-main);
-  letter-spacing: -0.02em;
-}
-
-/* Selector Interactivo de Billetes Mexicanos */
-.currency-selector-strip {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.6rem;
-  margin-top: 1rem;
-}
-
-.currency-chip-btn {
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 0.6rem 0.4rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
-  cursor: pointer;
-  transition: all var(--duration-fast);
-  color: var(--text-main);
-}
-
-.currency-chip-btn:hover {
-  border-color: var(--brand-primary);
-  background-color: var(--brand-primary-glow);
-  transform: translateY(-2px);
-}
-
-.currency-chip-btn.active {
-  border-color: var(--brand-primary);
-  background: linear-gradient(135deg, var(--brand-primary-glow), var(--bg-surface-elevated));
-  box-shadow: 0 0 12px var(--brand-primary-glow);
-}
-
-.currency-chip-val {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 800;
-}
-
-.currency-chip-sub {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-}
-
-/* OCR Reader Display */
-.ocr-terminal-box {
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 1rem 1.25rem;
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
+  align-items: baseline;
   gap: 0.5rem;
 }
 
-.ocr-terminal-header {
+.metric-giant {
+  font-family: var(--font-display);
+  font-size: 2.85rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-main);
+}
+
+.metric-unit {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.metric-diagnosis {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--brand-primary);
+}
+
+/* ── Glucose Range Bar (ADA Standard) ───────────────────────────────────── */
+.range-bar-container {
+  margin-top: 1.15rem;
+}
+
+.range-bar-track {
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(to right, #ef4444 0%, #10b981 25%, #10b981 70%, #f59e0b 85%, #ef4444 100%);
+  position: relative;
+  margin: 0.75rem 0 0.5rem 0;
+}
+
+.range-bar-pointer {
+  position: absolute;
+  top: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 3px solid var(--brand-primary);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+  transform: translateX(-50%);
+  transition: left 0.3s ease;
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ── Assistive Vision Display (Lo que las gafas ven y leen) ──────────────── */
+.glasses-readout-box {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.glasses-readout-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.glasses-readout-text {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+
+.glasses-action-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
 }
 
-.ocr-terminal-text {
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  color: var(--text-main);
-  line-height: 1.4;
-  min-height: 44px;
+/* ── Mobility Corridor (Guía de Camino y Obstáculos con SVG) ─────────────── */
+.corridor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 1rem;
 }
 
-/* ── Component 2: Circular Sonar Radar ────────────────────────────────────── */
-.radar-stage {
+.corridor-lane {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.15rem 0.85rem;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  position: relative;
-  margin: 0.5rem 0;
+  gap: 0.5rem;
+  transition: var(--transition);
 }
 
-.radar-circle {
-  width: 240px;
-  height: 240px;
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--radar-bg) 0%, #020712 100%);
-  border: 1px solid var(--radar-line);
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 0 30px rgba(6, 182, 212, 0.15), inset 0 0 40px rgba(0, 0, 0, 0.8);
+.corridor-lane.clear {
+  border-color: var(--status-normal-border);
+  background-color: var(--status-normal-bg);
 }
 
-/* Concéntricos de distancia */
-.radar-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: 1px dashed var(--radar-line);
-  pointer-events: none;
-}
-
-.radar-ring.ring-1 { width: 80px; height: 80px; }
-.radar-ring.ring-2 { width: 160px; height: 160px; }
-.radar-ring.ring-3 { width: 236px; height: 236px; border-style: solid; border-color: rgba(6, 182, 212, 0.4); }
-
-.radar-axis-h {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background-color: var(--radar-line);
-}
-
-.radar-axis-v {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 1px;
-  height: 100%;
-  background-color: var(--radar-line);
-}
-
-.radar-sweep-needle {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg at 50% 50%, rgba(16, 185, 129, 0.4) 0deg, rgba(6, 182, 212, 0.1) 45deg, transparent 70deg);
-  pointer-events: none;
-}
-
-/* Blips de Obstáculos */
-.radar-blip {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: var(--radar-blip);
-  box-shadow: 0 0 10px var(--radar-blip);
-  transform: translate(-50%, -50%);
-  z-index: 5;
-  transition: all var(--duration-fast);
-}
-
-.radar-blip.critical {
-  background-color: var(--radar-blip-critical);
-  box-shadow: 0 0 14px var(--radar-blip-critical);
-}
-
-/* Sectores de Proximidad */
-.radar-sectors-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.75rem;
-  width: 100%;
-  margin-top: 1.25rem;
-}
-
-.sector-card {
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 0.6rem;
-  text-align: center;
-  transition: all var(--duration-fast);
-}
-
-.sector-card.active {
-  border-color: var(--status-warning);
+.corridor-lane.warning {
+  border-color: var(--status-warning-border);
   background-color: var(--status-warning-bg);
 }
 
-.sector-card.critical {
-  border-color: var(--status-critical);
+.corridor-lane.blocked {
+  border-color: var(--status-critical-border);
   background-color: var(--status-critical-bg);
-  box-shadow: 0 0 16px rgba(239, 68, 68, 0.25);
 }
 
-.sector-card-name {
-  font-size: 0.72rem;
-  color: var(--text-muted);
+.corridor-svg-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-primary);
+}
+
+.corridor-lane.warning .corridor-svg-icon {
+  color: var(--status-warning);
+}
+
+.corridor-lane.blocked .corridor-svg-icon {
+  color: var(--status-critical);
+}
+
+.lane-title {
+  font-size: 0.82rem;
+  font-weight: 700;
   text-transform: uppercase;
-  font-weight: 600;
-  margin-bottom: 0.2rem;
+  color: var(--text-secondary);
 }
 
-.sector-card-dist {
-  font-family: var(--font-mono);
+.lane-distance {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.lane-status-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ── Quick Chips for Demonstrations (44px Accessible Touch Targets) ───────── */
+.chips-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1.15rem;
+  min-height: 44px; /* WCAG Touch Target */
+  border-radius: var(--radius-full);
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+
+.chip-btn:hover {
+  background-color: var(--bg-surface-hover);
+  border-color: var(--brand-primary);
+}
+
+.chip-btn.active {
+  background-color: var(--brand-primary);
+  color: var(--text-inverse);
+  border-color: var(--brand-primary);
+}
+
+.chip-btn:active {
+  transform: scale(0.96);
+}
+
+/* ── Activity Feed Table ────────────────────────────────────────────────── */
+.table-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.table-header-title {
+  padding: 1.15rem 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.table-header-title h3 {
+  font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--text-main);
 }
 
-/* ── Component 3: Radial Glucose Gauge & CSI Doppler ─────────────────────── */
-.gauge-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  gap: 1.5rem;
-  margin: 0.5rem 0;
-  flex-wrap: wrap;
-}
-
-.radial-progress-box {
-  position: relative;
-  width: 140px;
-  height: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.radial-svg {
-  transform: rotate(-90deg);
-  width: 100%;
-  height: 100%;
-}
-
-.radial-bg-track {
-  fill: none;
-  stroke: var(--bg-surface-elevated);
-  stroke-width: 10;
-}
-
-.radial-bar-fill {
-  fill: none;
-  stroke: var(--brand-primary);
-  stroke-width: 10;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.6s var(--ease-spring), stroke 0.4s;
-}
-
-.radial-center-text {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.radial-val {
-  font-family: var(--font-mono);
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: var(--text-main);
-  line-height: 1;
-}
-
-.radial-unit {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  font-weight: 600;
-  margin-top: 0.2rem;
-}
-
-.glucose-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.glucose-stat-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.82rem;
-}
-
-.glucose-stat-label {
-  color: var(--text-muted);
-}
-
-.glucose-stat-val {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-/* Doppler Waveform Box */
-.doppler-wave-frame {
-  width: 100%;
-  height: 90px;
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-}
-
-.doppler-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* ── Interactive Buttons & Inputs ────────────────────────────────────────── */
-.btn-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.55rem 1.15rem;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-body);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: all var(--duration-fast);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.btn-primary-action {
-  background-color: var(--brand-primary);
-  color: var(--text-inverse);
-  box-shadow: 0 2px 10px var(--brand-primary-glow);
-}
-
-.btn-primary-action:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px var(--brand-primary-glow);
-}
-
-.btn-secondary-action {
-  background-color: var(--bg-surface);
-  color: var(--text-main);
-  border: 1px solid var(--border-subtle);
-}
-
-.btn-secondary-action:hover {
-  border-color: var(--border-active);
-  background-color: var(--bg-surface-hover);
-  transform: translateY(-2px);
-}
-
-.btn-icon-pill {
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border-radius: var(--radius-md);
-  background-color: var(--bg-surface-elevated);
-  color: var(--text-main);
-  border: 1px solid var(--border-subtle);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--duration-fast);
-}
-
-.btn-icon-pill:hover {
-  border-color: var(--border-active);
-  transform: scale(1.05);
-}
-
-/* ── Live Log Table ──────────────────────────────────────────────────────── */
-.log-table-container {
-  background-color: var(--bg-surface-card);
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-
-.modern-table {
+.human-table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }
 
-.modern-table th {
-  background-color: var(--bg-surface-elevated);
-  padding: 0.85rem 1.25rem;
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.human-table th {
+  padding: 0.95rem 1.5rem;
+  text-align: left;
+  font-size: 0.78rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background-color: var(--bg-subtle);
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.modern-table td {
-  padding: 0.85rem 1.25rem;
+.human-table td {
+  padding: 1.1rem 1.5rem;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-secondary);
 }
 
-.modern-table tr:last-child td {
+.human-table tr:last-child td {
   border-bottom: none;
 }
 
-.modern-table tr:hover td {
+.human-table tr:hover td {
   background-color: var(--bg-surface-hover);
+}
+
+@media (max-width: 640px) {
+  .human-table th:nth-child(3),
+  .human-table td:nth-child(3) {
+    display: none; /* Hide detailed description on tiny screens to avoid overflow */
+  }
+}
+
+/* ── Role Picker in Auth Modal (With Clean SVGs) ────────────────────────── */
+.role-picker-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 1.25rem 0;
+}
+
+.role-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  min-height: 64px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+  user-select: none;
+}
+
+.role-card-btn:hover {
+  border-color: var(--brand-primary);
+  background-color: var(--bg-surface-hover);
+  transform: translateY(-1px);
+}
+
+.role-card-btn:active {
+  transform: scale(0.99);
+}
+
+.role-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.95rem;
+}
+
+.role-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.role-card-avatar svg {
+  width: 22px;
+  height: 22px;
+}
+
+.role-card-name {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: block;
+}
+
+.role-card-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 0.15rem;
+}
+
+/* ── Configuration Forms ────────────────────────────────────────────────── */
+.config-group-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-item-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.form-item-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.form-input-clean {
+  padding: 0.75rem 1rem;
+  min-height: 48px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.form-input-clean:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px var(--brand-primary-soft);
 }

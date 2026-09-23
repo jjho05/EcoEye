@@ -16,6 +16,7 @@ Table names are aligned with test_storage.py expectations:
 from __future__ import annotations
 
 import logging
+import os
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
@@ -176,9 +177,24 @@ class DatabaseManager:
     """
 
     def __init__(self, db_path: Optional[str] = None):
-        self.db_path = Path(db_path or settings.db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.init_db()
+        is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+        if db_path:
+            p = Path(db_path)
+            if is_serverless and not str(p).startswith("/tmp"):
+                self.db_path = Path("/tmp") / p.name
+            else:
+                self.db_path = p
+        else:
+            self.db_path = settings.absolute_db_path
+
+        try:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            self.init_db()
+        except Exception as e:
+            logger.warning("Fallo al inicializar base de datos en %s (%s). Reintentando en /tmp/ecoeye_local.db", self.db_path, e)
+            self.db_path = Path("/tmp/ecoeye_local.db")
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            self.init_db()
 
     # ------------------------------------------------------------------
     # Connection lifecycle
@@ -192,7 +208,10 @@ class DatabaseManager:
             check_same_thread=False,
         )
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode = WAL;")
+        try:
+            conn.execute("PRAGMA journal_mode = WAL;")
+        except sqlite3.OperationalError:
+            conn.execute("PRAGMA journal_mode = TRUNCATE;")
         conn.execute("PRAGMA synchronous = NORMAL;")
         conn.execute("PRAGMA foreign_keys = ON;")
         conn.execute("PRAGMA busy_timeout = 5000;")

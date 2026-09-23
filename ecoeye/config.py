@@ -2,6 +2,7 @@
 Configuración centralizada del sistema EcoEye con validación estricta (Pydantic Settings).
 """
 
+import os
 from pathlib import Path
 from typing import Any, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -91,6 +92,9 @@ class Settings(BaseSettings):
     @property
     def absolute_db_path(self) -> Path:
         """Devuelve la ruta absoluta normalizada a la base de datos SQLite."""
+        if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+            p = Path(self.db_path)
+            return Path("/tmp") / p.name
         p = Path(self.db_path)
         if not p.is_absolute():
             return Path.cwd() / p

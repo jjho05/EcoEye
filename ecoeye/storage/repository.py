@@ -1,0 +1,377 @@
+"""
+EcoEye Storage Repository.
+
+Provides high-level CRUD operations for biomedical, ambient, and spatial
+sensing telemetry, with transparent AES-256-GCM encryption at rest and
+atomic dual-write (entity table + sync_queue in one transaction).
+
+Public API aligned with test_storage.py contract:
+  - EcoEyeRepository(db_path=None, crypto_engine=None)
+  - save_glucose_reading(reading)  → int
+  - get_recent_glucose_readings(limit) → List[GlucoseReading]
+  - save_fall_event(event)         → int
+  - get_recent_fall_events(limit)  → List[FallEvent]
+  - save_obstacle_detection(obs)   → int
+  - get_recent_obstacles(limit, sector=None) → List[dict]
+  - save_heartbeat(...)            → int
+  - get_system_stats()             → dict
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from ecoeye.core.models import (
+    FallEvent,
+    FallSeverity,
+    FallStatus,
+    GlucoseAlertLevel,
+    GlucoseReading,
+    GlucoseTrend,
+    ObstacleDetection,
+    ObstacleSector,
+    ObstacleUrgency,
+)
+from ecoeye.core.security import CryptoEngine, crypto_engine as _default_crypto
+from ecoeye.storage.database import DatabaseManager, db_manager
+
+logger = logging.getLogger("ecoeye.storage.repository")
+
+
+class EcoEyeRepository:
+    """
+    Encapsulates data persistence and retrieval with transparent encryption
+    for all sensitive biomedical and sensing events.
+
+    Atomic guarantee: every save_* method writes to the entity table AND
+    enqueues the sync payload in a single SQLite transaction. If either
+    INSERT fails, both are rolled back — no orphan records, no missing queue items.
+    """
+
+    def __init__(
+        self,
+        db_path: Optional[str] = None,
+        crypto_engine: Optional[CryptoEngine] = None,
+    ):
+        # Allow custom db_path for test isolation (tempfile pattern)
+        if db_path is not None:
+            self.db = DatabaseManager(db_path=db_path)
+        else:
+            self.db = db_manager
+
+        self.crypto = crypto_engine or _default_crypto
+
+    # ------------------------------------------------------------------
+    # Glucose Telemetry (Biomedical — Encrypted at Rest)
+    # ------------------------------------------------------------------
+
+    def save_glucose_reading(self, reading: GlucoseReading) -> int:
+        """
+        Encrypt and store a biomedical glucose reading, then enqueue for sync.
+        Returns the SQLite rowid (integer PK) of the inserted record.
+        Atomic: both writes occur in one transaction.
+        """
+        reading_dict = reading.model_dump(mode="json")
+        encrypted_data = self.crypto.encrypt_json(reading_dict)
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        sql_record = """
+        INSERT INTO glucose_readings
+            (record_uuid, timestamp, sensor_id, alert_level, encrypted_data, synced)
+        VALUES (?, ?, ?, ?, ?, 0)
+        ON CONFLICT(record_uuid) DO UPDATE SET
+            alert_level    = excluded.alert_level,
+            encrypted_data = excluded.encrypted_data;
+        """
+
+        sql_queue = """
+        INSERT INTO sync_queue
+            (entity_type, entity_id, payload, priority, retry_count, status, next_attempt_at)
+        VALUES (?, ?, ?, 1, 0, 'pending', ?)
+        ON CONFLICT(entity_type, entity_id) DO NOTHING;
+        """
+
+        row_id: int = 0
+        with self.db.session() as conn:
+            cursor = conn.execute(
+                sql_record,
+                (
+                    reading.id,
+                    reading.timestamp.isoformat(),
+                    reading.sensor_id,
+                    reading.alert_level.value,
+                    encrypted_data,
+                ),
+            )
+            row_id = cursor.lastrowid or 0
+            conn.execute(
+                sql_queue,
+                ("glucose", reading.id, json.dumps(reading_dict), now_iso),
+            )
+
+        logger.debug(
+            "Saved encrypted glucose reading %s (%.1f mg/dL) → row %d",
+            reading.id, reading.glucose_mg_dl, row_id,
+        )
+        return row_id
+
+    def get_recent_glucose_readings(self, limit: int = 50) -> List[GlucoseReading]:
+        """Fetch latest glucose records, decrypting each payload transparently."""
+        sql = """
+        SELECT id, record_uuid, encrypted_data
+        FROM glucose_readings
+        ORDER BY timestamp DESC
+        LIMIT ?;
+        """
+        results: List[GlucoseReading] = []
+        with self.db.session() as conn:
+            cursor = conn.execute(sql, (limit,))
+            for row in cursor.fetchall():
+                try:
+                    decrypted = self.crypto.decrypt_json(row["encrypted_data"])
+                    results.append(GlucoseReading.model_validate(decrypted))
+                except Exception as err:
+                    logger.error(
+                        "Failed to decrypt glucose record row %s: %s",
+                        row["record_uuid"], err,
+                    )
+        return results
+
+    # ------------------------------------------------------------------
+    # Fall Events (WiFi-CSI — Encrypted at Rest)
+    # ------------------------------------------------------------------
+
+    def save_fall_event(self, event: FallEvent) -> int:
+        """
+        Encrypt and store a classified fall event, then enqueue for sync.
+        Returns the SQLite rowid of the inserted record.
+        Atomic: both writes in one transaction.
+        """
+        event_dict = event.model_dump(mode="json")
+        encrypted_data = self.crypto.encrypt_json(event_dict)
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        sql_record = """
+        INSERT INTO fall_events (
+            record_uuid, timestamp, device_id, severity,
+            confidence, inactivity_secs, location_hint,
+            is_confirmed, encrypted_data, synced
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        ON CONFLICT(record_uuid) DO UPDATE SET
+            confidence     = excluded.confidence,
+            is_confirmed   = excluded.is_confirmed,
+            encrypted_data = excluded.encrypted_data;
+        """
+
+        sql_queue = """
+        INSERT INTO sync_queue
+            (entity_type, entity_id, payload, priority, retry_count, status, next_attempt_at)
+        VALUES (?, ?, ?, 2, 0, 'pending', ?)
+        ON CONFLICT(entity_type, entity_id) DO NOTHING;
+        """
+
+        row_id: int = 0
+        with self.db.session() as conn:
+            cursor = conn.execute(
+                sql_record,
+                (
+                    event.id,
+                    event.timestamp.isoformat(),
+                    event.device_id,
+                    event.severity.value,
+                    event.confidence,
+                    event.inactivity_duration_sec,
+                    event.location_hint,
+                    1 if event.is_confirmed else 0,
+                    encrypted_data,
+                ),
+            )
+            row_id = cursor.lastrowid or 0
+            conn.execute(
+                sql_queue,
+                ("fall", event.id, json.dumps(event_dict), now_iso),
+            )
+
+        logger.info(
+            "Saved fall event %s at %s (conf=%.2f, sev=%s) → row %d",
+            event.id, event.location_hint, event.confidence, event.severity.value, row_id,
+        )
+        return row_id
+
+    def get_recent_fall_events(self, limit: int = 50) -> List[FallEvent]:
+        """Fetch latest fall events, decrypting each payload."""
+        sql = """
+        SELECT record_uuid, encrypted_data
+        FROM fall_events
+        ORDER BY timestamp DESC
+        LIMIT ?;
+        """
+        results: List[FallEvent] = []
+        with self.db.session() as conn:
+            cursor = conn.execute(sql, (limit,))
+            for row in cursor.fetchall():
+                try:
+                    decrypted = self.crypto.decrypt_json(row["encrypted_data"])
+                    results.append(FallEvent.model_validate(decrypted))
+                except Exception as err:
+                    logger.error(
+                        "Failed to decrypt fall record %s: %s",
+                        row["record_uuid"], err,
+                    )
+        return results
+
+    # ------------------------------------------------------------------
+    # Obstacle Detections (Edge Vision)
+    # ------------------------------------------------------------------
+
+    def save_obstacle_detection(self, obs: ObstacleDetection) -> int:
+        """
+        Persist a detected obstacle and enqueue for sync.
+        Returns the SQLite rowid.
+        Atomic: both writes in one transaction.
+        """
+        obs_dict = obs.model_dump(mode="json")
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        sql_record = """
+        INSERT INTO obstacle_detections (
+            record_uuid, timestamp, sector, distance_meters,
+            urgency, audio_message, audio_played, label, synced
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+        ON CONFLICT(record_uuid) DO NOTHING;
+        """
+
+        sql_queue = """
+        INSERT INTO sync_queue
+            (entity_type, entity_id, payload, priority, retry_count, status, next_attempt_at)
+        VALUES (?, ?, ?, 0, 0, 'pending', ?)
+        ON CONFLICT(entity_type, entity_id) DO NOTHING;
+        """
+
+        row_id: int = 0
+        with self.db.session() as conn:
+            cursor = conn.execute(
+                sql_record,
+                (
+                    obs.id,
+                    obs.timestamp.isoformat(),
+                    obs.sector.value,
+                    obs.distance_meters,
+                    obs.urgency.value,
+                    obs.audio_message,
+                    1 if obs.audio_alert_played else 0,
+                    obs.label,
+                ),
+            )
+            row_id = cursor.lastrowid or 0
+            conn.execute(
+                sql_queue,
+                ("obstacle", obs.id, json.dumps(obs_dict), now_iso),
+            )
+
+        logger.debug(
+            "Saved obstacle detection %s (%s @ %.1fm) → row %d",
+            obs.id, obs.sector.value, obs.distance_meters, row_id,
+        )
+        return row_id
+
+    def get_recent_obstacles(
+        self,
+        limit: int = 50,
+        sector: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch latest obstacle detections as plain dicts.
+        Optionally filtered by sector (e.g. 'center', 'left', 'right').
+        """
+        if sector:
+            sql = """
+            SELECT id, record_uuid, timestamp, sector, distance_meters,
+                   urgency, audio_message, audio_played, label
+            FROM obstacle_detections
+            WHERE sector = ?
+            ORDER BY timestamp DESC
+            LIMIT ?;
+            """
+            params = (sector, limit)
+        else:
+            sql = """
+            SELECT id, record_uuid, timestamp, sector, distance_meters,
+                   urgency, audio_message, audio_played, label
+            FROM obstacle_detections
+            ORDER BY timestamp DESC
+            LIMIT ?;
+            """
+            params = (limit,)
+
+        with self.db.session() as conn:
+            cursor = conn.execute(sql, params)
+            return [dict(row) for row in cursor.fetchall()]
+
+    # ------------------------------------------------------------------
+    # Heartbeats & System Health
+    # ------------------------------------------------------------------
+
+    def save_heartbeat(
+        self,
+        cpu_percent: float,
+        memory_percent: float,
+        network_status: str,
+        active_sensors: List[str],
+        battery_pct: Optional[float] = None,
+    ) -> int:
+        """Record node heartbeat telemetry. Returns rowid."""
+        now_iso = datetime.now(timezone.utc).isoformat()
+        sql = """
+        INSERT INTO heartbeats
+            (timestamp, cpu_percent, memory_percent, network_status, battery_pct, active_sensors)
+        VALUES (?, ?, ?, ?, ?, ?);
+        """
+        with self.db.session() as conn:
+            cursor = conn.execute(
+                sql,
+                (
+                    now_iso,
+                    cpu_percent,
+                    memory_percent,
+                    network_status,
+                    battery_pct,
+                    json.dumps(active_sensors),
+                ),
+            )
+            return cursor.lastrowid or 0
+
+    def get_system_stats(self) -> Dict[str, Any]:
+        """Return aggregated counts for telemetry and sync queue status."""
+        with self.db.session() as conn:
+            g_count = conn.execute("SELECT COUNT(*) FROM glucose_readings;").fetchone()[0]
+            f_count = conn.execute("SELECT COUNT(*) FROM fall_events;").fetchone()[0]
+            o_count = conn.execute("SELECT COUNT(*) FROM obstacle_detections;").fetchone()[0]
+            sq_pending = conn.execute(
+                "SELECT COUNT(*) FROM sync_queue WHERE status = 'pending';"
+            ).fetchone()[0]
+            sq_synced = conn.execute(
+                "SELECT COUNT(*) FROM sync_queue WHERE status = 'synced';"
+            ).fetchone()[0]
+            last_hb = conn.execute(
+                "SELECT * FROM heartbeats ORDER BY id DESC LIMIT 1;"
+            ).fetchone()
+
+        return {
+            "glucose_readings_count": g_count,
+            "fall_events_count": f_count,
+            "obstacle_detections_count": o_count,
+            "sync_pending_count": sq_pending,
+            "sync_synced_count": sq_synced,
+            "last_heartbeat": dict(last_hb) if last_hb else None,
+        }
+
+
+# Backward-compatible alias — old code importing StorageRepository still works
+StorageRepository = EcoEyeRepository
+
+# Global singleton for non-test usage
+repository = EcoEyeRepository()

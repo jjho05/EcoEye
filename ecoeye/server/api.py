@@ -53,12 +53,19 @@ def create_app(
 
     # ── Dashboard static files ──────────────────────────────────────────
     dashboard_dir = Path(__file__).parent.parent / "dashboard"
-    if (dashboard_dir / "index.html").exists():
-        app.mount(
-            "/dashboard",
-            StaticFiles(directory=str(dashboard_dir), html=True),
-            name="dashboard",
-        )
+    if dashboard_dir.exists():
+        if (dashboard_dir / "css").exists():
+            app.mount("/css", StaticFiles(directory=str(dashboard_dir / "css")), name="css")
+        if (dashboard_dir / "js").exists():
+            app.mount("/js", StaticFiles(directory=str(dashboard_dir / "js")), name="js")
+        if (dashboard_dir / "assets").exists():
+            app.mount("/assets", StaticFiles(directory=str(dashboard_dir / "assets")), name="assets")
+        if (dashboard_dir / "index.html").exists():
+            app.mount(
+                "/dashboard",
+                StaticFiles(directory=str(dashboard_dir), html=True),
+                name="dashboard",
+            )
 
     # ── Routes ─────────────────────────────────────────────────────────
 

@@ -202,7 +202,7 @@ class EcoEyeOrchestrator:
     async def run(self) -> None:
         """Start all subsystems and run until Ctrl-C or SIGTERM."""
         logger.info("=" * 60)
-        logger.info("🌿 EcoEye Edge Node starting up")
+        logger.info("[INIT] EcoEye Edge Node starting up")
         logger.info("   device_id   : %s", settings.device_id)
         logger.info("   db_path     : %s", settings.db_path)
         logger.info("   simulation  : %s", self.simulation_mode)
@@ -237,9 +237,9 @@ class EcoEyeOrchestrator:
                     name="glucose-sim",
                 ),
             ]
-            logger.info("🎭 Simulation mode: all sensors running with synthetic data")
+            logger.info("[MODE] Simulation mode: all sensors running with synthetic data")
         else:
-            logger.info("🔌 Production mode: connect physical sensors")
+            logger.info("[MODE] Production mode: connect physical sensors")
 
         # Try to start FastAPI if available
         try:
@@ -254,7 +254,7 @@ class EcoEyeOrchestrator:
             )
             server = uvicorn.Server(config)
             tasks.append(asyncio.create_task(server.serve(), name="api-server"))
-            logger.info("🌐 FastAPI server starting at http://%s:%d", settings.api_host, settings.api_port)
+            logger.info("[API] FastAPI server starting at http://%s:%d", settings.api_host, settings.api_port)
         except ImportError:
             logger.info("uvicorn/FastAPI not available — skipping API server")
 
@@ -269,7 +269,7 @@ class EcoEyeOrchestrator:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
             self.speaker.stop(drain=False)
-            logger.info("🌿 EcoEye shut down cleanly")
+            logger.info("[SHUTDOWN] EcoEye shut down cleanly")
 
     def shutdown(self) -> None:
         """External shutdown hook."""

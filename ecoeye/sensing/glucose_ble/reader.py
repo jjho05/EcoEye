@@ -154,7 +154,7 @@ class GlucoseReader:
             raw_hex_packet=raw_hex,
         )
         logger.info(
-            "📊 GLUCOSE — %.1f mg/dL | trend=%s | alert=%s | battery=%s%%",
+            "[GLUCOSE] %.1f mg/dL | trend=%s | alert=%s | battery=%s%%",
             reading.glucose_mg_dl,
             reading.trend.value,
             reading.alert_level.value,

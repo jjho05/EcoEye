@@ -70,7 +70,7 @@ def create_app(
             return dashboard_html.read_text(encoding="utf-8")
         return """
         <html><body style="font-family:monospace;background:#0f172a;color:#94a3b8;padding:2rem">
-        <h1>🌿 EcoEye Edge Node</h1>
+        <h1>EcoEye Edge Node</h1>
         <p>API running. Visit <a href="/docs" style="color:#38bdf8">/docs</a> for API docs.</p>
         <p><a href="/api/v1/stats" style="color:#38bdf8">/api/v1/stats</a> — System stats</p>
         </body></html>

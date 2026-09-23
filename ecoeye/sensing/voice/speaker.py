@@ -168,7 +168,7 @@ class AudioSpeaker:
                     logger.error("TTS playback error: %s", exc)
             else:
                 # Headless fallback — log as audible substitute
-                logger.warning("🔊 AUDIO [P%d]: %s", request.priority, request.message)
+                logger.warning("[AUDIO] [P%d]: %s", request.priority, request.message)
 
             self._pq.task_done()
 

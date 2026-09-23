@@ -260,7 +260,7 @@ class SupabaseWorker:
                 if success:
                     self.queue_mgr.mark_success(item_id)
                     logger.info(
-                        "✅ Synced %s/%s → Supabase %s",
+                        "[SYNC_OK] Synced %s/%s → Supabase %s",
                         entity_type, entity_id, endpoint,
                     )
                 else:

@@ -163,7 +163,7 @@ class ObstacleDetector:
         )
 
         logger.info(
-            "🚧 OBSTACLE — %s | %s @ %.2fm | urgency=%s | conf=%.2f",
+            "[OBSTACLE] %s | %s @ %.2fm | urgency=%s | conf=%.2f",
             label, sector.value, distance_m, urgency.value, confidence,
         )
 

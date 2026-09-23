@@ -201,7 +201,7 @@ class FallDetector:
                 )
 
                 logger.info(
-                    "🚨 FALL DETECTED — conf=%.2f, sev=%s, stillness=%.1fs, loc=%s",
+                    "[FALL_DETECTED] conf=%.2f, sev=%s, stillness=%.1fs, loc=%s",
                     confidence, severity.value, duration, self.location,
                 )
 

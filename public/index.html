@@ -15,10 +15,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
   
   <!-- Design System & Stylesheets -->
-  <link rel="stylesheet" href="./css/tokens.css">
-  <link rel="stylesheet" href="./css/layout.css">
-  <link rel="stylesheet" href="./css/components.css">
-  <link rel="stylesheet" href="./css/animations.css">
+  <link rel="stylesheet" href="./css/tokens.css?v=2.3.0">
+  <link rel="stylesheet" href="./css/layout.css?v=2.3.0">
+  <link rel="stylesheet" href="./css/components.css?v=2.3.0">
+  <link rel="stylesheet" href="./css/animations.css?v=2.3.0">
 </head>
 <body>
 
@@ -981,15 +981,28 @@
       <div style="text-align:center; margin-bottom:1.5rem;">
         <img id="auth-modal-logo" src="./assets/branding/ecoeye-logo-full-dark.svg" alt="EcoEye" style="height:36px; width:auto; margin:0 auto;" />
         <h2 style="font-family:var(--font-display); font-size:1.35rem; font-weight:800; margin-top:0.75rem; color:var(--text-main);">
-          ¿Quien esta usando EcoEye hoy?
+          Acceso al Sistema EcoEye
         </h2>
         <span style="font-size:0.85rem; color:var(--text-secondary); display:block; margin-top:0.25rem;">
-          Selecciona tu perfil para ingresar con un solo clic:
+          Selecciona tu perfil de usuario o ingresa tus credenciales de acceso:
         </span>
       </div>
 
       <!-- Human Role Selection Cards (Vector SVGs) -->
       <div class="role-picker-grid">
+        <button class="role-card-btn quick-role-btn" data-user="cuidador" data-pass="familiar2026!">
+          <div class="role-card-meta">
+            <div class="role-card-avatar" style="border-color:var(--brand-primary); color:var(--brand-primary);">
+              <span style="font-weight:800; font-size:1.05rem;">J</span>
+            </div>
+            <div>
+              <span class="role-card-name">Jesús Olvera (Familiar / Cuidador)</span>
+              <span class="role-card-desc">Alertas de caídas, visión asistiva y cuidado del hogar</span>
+            </div>
+          </div>
+          <span class="status-pill info">INGRESAR</span>
+        </button>
+
         <button class="role-card-btn quick-role-btn" data-user="medico" data-pass="clinica2026!">
           <div class="role-card-meta">
             <div class="role-card-avatar" style="border-color:var(--brand-cyan); color:var(--brand-cyan);">
@@ -1000,29 +1013,11 @@
               </svg>
             </div>
             <div>
-              <span class="role-card-name">Dra. Carmen Santos (Medico)</span>
-              <span class="role-card-desc">Consulta de glucosa, signos vitales y recetas</span>
+              <span class="role-card-name">Dra. Carmen Santos (Médico Especialista)</span>
+              <span class="role-card-desc">Expediente clínico, glucosa y signos vitales</span>
             </div>
           </div>
           <span class="status-pill normal">INGRESAR</span>
-        </button>
-
-        <button class="role-card-btn quick-role-btn" data-user="cuidador" data-pass="familiar2026!">
-          <div class="role-card-meta">
-            <div class="role-card-avatar" style="border-color:var(--brand-primary); color:var(--brand-primary);">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-            </div>
-            <div>
-              <span class="role-card-name">Luis Morales (Familiar / Cuidador)</span>
-              <span class="role-card-desc">Alertas de caidas y asistencia del ser querido</span>
-            </div>
-          </div>
-          <span class="status-pill info">INGRESAR</span>
         </button>
 
         <button class="role-card-btn quick-role-btn" data-user="admin" data-pass="ecoeye2026!">
@@ -1034,39 +1029,33 @@
               </svg>
             </div>
             <div>
-              <span class="role-card-name">Administrador de Hardware</span>
-              <span class="role-card-desc">Calibracion de sensores y parametros tecnicos</span>
+              <span class="role-card-name">Ing. Administrador (Hardware)</span>
+              <span class="role-card-desc">Calibración ToF, radar CSI y diagnóstico edge</span>
             </div>
           </div>
           <span class="status-pill warning">INGRESAR</span>
         </button>
       </div>
 
-      <!-- Session Logout Action -->
-      <button id="btn-modal-logout-action" class="btn-action" style="margin-top:1rem; width:100%; border:1px solid var(--border-subtle); background:transparent; color:var(--text-secondary); font-size:0.82rem; border-radius:var(--radius-sm); padding:0.6rem; cursor:pointer;">
-        Cerrar Sesion Activa
-      </button>
-
-
-      <!-- Optional Form for custom users -->
-      <details style="margin-top:1rem; border-top:1px solid var(--border-subtle); padding-top:0.75rem;">
-        <summary style="font-size:0.8rem; color:var(--text-muted); cursor:pointer; font-weight:600;">O ingresar con usuario y contraseña manual</summary>
-        <form id="auth-form" style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.75rem;" onsubmit="return false;">
-          <input id="login-username" type="text" placeholder="Usuario" class="form-input-clean" />
-          <input id="login-password" type="password" placeholder="Contraseña" class="form-input-clean" />
-          <button id="btn-login-submit" class="btn-action btn-primary-action" style="width:100%;">
-            Iniciar Sesion
+      <!-- Direct Form for credentials -->
+      <div style="margin-top:1.25rem; border-top:1px solid var(--border-subtle); padding-top:1rem;">
+        <span style="font-size:0.82rem; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:0.6rem;">O escribe tus credenciales de acceso:</span>
+        <form id="auth-form" style="display:flex; flex-direction:column; gap:0.75rem;" onsubmit="return false;">
+          <input id="login-username" type="text" placeholder="Usuario (ej. jesus.olvera, medico, admin)" class="form-input-clean" autocomplete="username" />
+          <input id="login-password" type="password" placeholder="Contraseña" class="form-input-clean" autocomplete="current-password" />
+          <button id="btn-login-submit" class="btn-action btn-primary-action" style="width:100%; justify-content:center;">
+            Iniciar Sesión
           </button>
         </form>
-      </details>
+      </div>
     </div>
   </div>
 
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- Scripts -->
-  <script src="./js/api.js"></script>
-  <script src="./js/app.js"></script>
+  <!-- Scripts with Cache Busting -->
+  <script src="./js/api.js?v=2.3.0"></script>
+  <script src="./js/app.js?v=2.3.0"></script>
 </body>
 </html>

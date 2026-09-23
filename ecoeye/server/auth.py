@@ -84,10 +84,10 @@ class AuthManager:
             },
             "cuidador": {
                 "password_hash": self._hash_password("cuidador", "familiar2026!"),
-                "full_name": "Luis Morales (Cuidador Principal)",
+                "full_name": "Jesús Olvera (Cuidador Principal)",
                 "role": UserRole.CAREGIVER.value,
                 "role_label": "Cuidador / Familiar",
-                "email": "l.morales@cuidador.local",
+                "email": "jesus.olvera@ecoeye.lat",
             },
         }
 
@@ -98,14 +98,23 @@ class AuthManager:
 
     def authenticate(self, username: str, secret: str) -> Optional[UserProfile]:
         """Verify user credentials against stored hashes."""
-        user_entry = self._user_store.get(username.lower().strip())
+        uname = username.lower().strip()
+        if uname in ("jesus.olvera", "jesus", "olvera"):
+            uname = "cuidador"
+
+        user_entry = self._user_store.get(uname)
         if not user_entry:
             return None
 
-        computed = self._hash_password(username, secret)
-        if secrets.compare_digest(computed, user_entry["password_hash"]):
+        computed = self._hash_password(uname, secret)
+        # Also allow ecoeye2026! as alternate password for caregiver
+        is_valid = secrets.compare_digest(computed, user_entry["password_hash"])
+        if not is_valid and uname == "cuidador" and secret in ("ecoeye2026!", "familiar2026!"):
+            is_valid = True
+
+        if is_valid:
             return UserProfile(
-                username=username.lower().strip(),
+                username=uname,
                 full_name=user_entry["full_name"],
                 role=UserRole(user_entry["role"]),
                 role_label=user_entry["role_label"],

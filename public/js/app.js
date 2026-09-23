@@ -291,29 +291,45 @@ class EcoEyeDashboard {
 
   /* ── Authentication & RBAC System ─────────────────────────────────────── */
   async initAuth() {
-    try {
-      const user = await this.api.getCurrentUser();
-      if (user && user.user_id) {
-        this.setUserSession(user);
-        this.hideAuthModal();
-      } else {
-        this.setGuestSession();
+    const token = this.api.getToken();
+    if (token) {
+      try {
+        const user = await this.api.getCurrentUser();
+        if (user && (user.username || user.full_name)) {
+          this.setUserSession(user);
+          this.hideAuthModal();
+          return;
+        }
+      } catch (_) {
+        this.api.setToken(null);
       }
-    } catch (_) {
-      this.setGuestSession();
     }
+
+    // Sin sesion previa: solicitar autenticacion inmediata
+    this.currentUser = null;
+    if (this.dom.headerUserName) this.dom.headerUserName.textContent = 'Sin Sesión';
+    if (this.dom.headerUserRole) this.dom.headerUserRole.textContent = 'Acceso Requerido';
+    if (this.dom.userAvatarCircle) {
+      this.dom.userAvatarCircle.textContent = '?';
+      this.dom.userAvatarCircle.style.borderColor = 'var(--text-muted)';
+      this.dom.userAvatarCircle.style.color = 'var(--text-muted)';
+    }
+    this.showAuthModal(true);
   }
 
   setUserSession(user) {
     this.currentUser = user;
-    if (this.dom.headerUserName) this.dom.headerUserName.textContent = user.display_name || user.username;
-    if (this.dom.headerUserRole) this.dom.headerUserRole.textContent = user.role_title || user.role;
+    const displayName = user.full_name || user.display_name || user.username || 'Usuario';
+    const roleLabel = user.role_label || user.role_title || user.role || 'Personal Autorizado';
+
+    if (this.dom.headerUserName) this.dom.headerUserName.textContent = displayName;
+    if (this.dom.headerUserRole) this.dom.headerUserRole.textContent = roleLabel;
 
     if (this.dom.userAvatarCircle) {
-      const initial = (user.display_name || user.username || 'U')[0].toUpperCase();
+      const initial = displayName.charAt(0).toUpperCase();
       this.dom.userAvatarCircle.textContent = initial;
 
-      if (user.role === 'medico') {
+      if (user.role === 'clinician' || user.role === 'medico') {
         this.dom.userAvatarCircle.style.borderColor = 'var(--brand-cyan)';
         this.dom.userAvatarCircle.style.color = 'var(--brand-cyan)';
       } else if (user.role === 'admin') {
@@ -326,25 +342,12 @@ class EcoEyeDashboard {
     }
   }
 
-  setGuestSession() {
-    this.currentUser = {
-      username: 'jesus.olvera',
-      display_name: 'Jesús Olvera',
-      role: 'familiar',
-      role_title: 'Familiar / Cuidador Principal'
-    };
-    if (this.dom.headerUserName) this.dom.headerUserName.textContent = 'Jesús Olvera';
-    if (this.dom.headerUserRole) this.dom.headerUserRole.textContent = 'Familiar / Cuidador Principal';
-    if (this.dom.userAvatarCircle) {
-      this.dom.userAvatarCircle.textContent = 'J';
-      this.dom.userAvatarCircle.style.borderColor = 'var(--brand-primary)';
-      this.dom.userAvatarCircle.style.color = 'var(--brand-primary)';
-    }
-  }
-
-  showAuthModal() {
+  showAuthModal(force = false) {
     if (this.dom.authModal) {
       this.dom.authModal.classList.add('active');
+      if (this.dom.btnCloseAuthModal) {
+        this.dom.btnCloseAuthModal.style.display = (!this.currentUser || force) ? 'none' : 'flex';
+      }
     }
   }
 
@@ -365,9 +368,10 @@ class EcoEyeDashboard {
       if (res && res.user) {
         this.setUserSession(res.user);
         this.hideAuthModal();
+        const displayName = res.user.full_name || res.user.display_name || res.user.username;
         this.showToast(
           'Bienvenido(a)',
-          `Has ingresado como ${res.user.display_name}`,
+          `Has ingresado como ${displayName}`,
           'normal'
         );
       }
@@ -381,8 +385,16 @@ class EcoEyeDashboard {
       await this.api.logout();
     } catch (_) {
     } finally {
-      this.setGuestSession();
-      this.showAuthModal();
+      this.api.setToken(null);
+      this.currentUser = null;
+      if (this.dom.headerUserName) this.dom.headerUserName.textContent = 'Sin Sesión';
+      if (this.dom.headerUserRole) this.dom.headerUserRole.textContent = 'Acceso Requerido';
+      if (this.dom.userAvatarCircle) {
+        this.dom.userAvatarCircle.textContent = '?';
+        this.dom.userAvatarCircle.style.borderColor = 'var(--text-muted)';
+        this.dom.userAvatarCircle.style.color = 'var(--text-muted)';
+      }
+      this.showAuthModal(true);
       this.showToast('Sesion Finalizada', 'Has salido del sistema de monitoreo', 'info');
     }
   }
@@ -1324,15 +1336,19 @@ class EcoEyeDashboard {
       this.dom.userProfileWidget.addEventListener('click', () => this.showAuthModal());
     }
 
-    // Auth modal close button
+    // Auth modal close button (only if authenticated)
     if (this.dom.btnCloseAuthModal) {
-      this.dom.btnCloseAuthModal.addEventListener('click', () => this.hideAuthModal());
+      this.dom.btnCloseAuthModal.addEventListener('click', () => {
+        if (this.currentUser) this.hideAuthModal();
+      });
     }
 
-    // Close modal clicking overlay backdrop
+    // Close modal clicking overlay backdrop (only if authenticated)
     if (this.dom.authModal) {
       this.dom.authModal.addEventListener('click', (e) => {
-        if (e.target === this.dom.authModal) this.hideAuthModal();
+        if (e.target === this.dom.authModal && this.currentUser) {
+          this.hideAuthModal();
+        }
       });
     }
 
@@ -1368,6 +1384,16 @@ class EcoEyeDashboard {
         const u = this.dom.loginUsername ? this.dom.loginUsername.value.trim() : '';
         const p = this.dom.loginPassword ? this.dom.loginPassword.value : '';
         this.executeLogin(u, p);
+      });
+    }
+
+    if (this.dom.loginPassword) {
+      this.dom.loginPassword.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const u = this.dom.loginUsername ? this.dom.loginUsername.value.trim() : '';
+          const p = this.dom.loginPassword ? this.dom.loginPassword.value : '';
+          this.executeLogin(u, p);
+        }
       });
     }
 

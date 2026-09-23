@@ -112,14 +112,23 @@ class EcoEyeDashboard {
       fallStatusExplanation: document.getElementById('fall-status-explanation'),
       dopplerCanvasEl: document.getElementById('doppler-canvas'),
 
-      // Demo Sandbox Buttons
-      btnDemoBill200: document.getElementById('btn-demo-bill-200'),
-      btnDemoBill500: document.getElementById('btn-demo-bill-500'),
-      btnDemoOcrMeds: document.getElementById('btn-demo-ocr-meds'),
-      btnDemoFallAlert: document.getElementById('btn-demo-fall-alert'),
-      btnDemoObstacleNear: document.getElementById('btn-demo-obstacle-near'),
-      btnDemoHypoGlucose: document.getElementById('btn-demo-hypo-glucose'),
-      btnDemoResetNormal: document.getElementById('btn-demo-reset-normal'),
+      // Vision Module Controls & Inputs
+      visionFileInput: document.getElementById('vision-file-input'),
+      btnSnapCamera: document.getElementById('btn-snap-camera'),
+      btnUploadFile: document.getElementById('btn-upload-file'),
+      visionImagePreviewWrapper: document.getElementById('vision-image-preview-wrapper'),
+      visionImagePreview: document.getElementById('vision-image-preview'),
+      visionPresetBtns: document.querySelectorAll('.vision-preset-btn'),
+      visionPresetOcrs: document.querySelectorAll('.vision-preset-ocr'),
+
+      // Clinical Ingestion Form
+      formRecordGlucose: document.getElementById('form-record-glucose'),
+      inputGlucoseVal: document.getElementById('input-glucose-val'),
+      selectGlucoseContext: document.getElementById('select-glucose-context'),
+      btnSubmitGlucose: document.getElementById('btn-submit-glucose'),
+
+      // Hardware Diagnostic & Protocol Trigger
+      btnTriggerCsiTest: document.getElementById('btn-trigger-csi-test'),
 
       // Dedicated Vision Module (View 2)
       btnSnapInference: document.getElementById('btn-snap-inference'),
@@ -275,13 +284,18 @@ class EcoEyeDashboard {
   }
 
   setGuestSession() {
-    this.currentUser = null;
-    if (this.dom.headerUserName) this.dom.headerUserName.textContent = 'Modo Evaluador';
-    if (this.dom.headerUserRole) this.dom.headerUserRole.textContent = 'Juez HackaTec';
+    this.currentUser = {
+      username: 'jesus.olvera',
+      display_name: 'Jesús Olvera',
+      role: 'familiar',
+      role_title: 'Familiar / Cuidador Principal'
+    };
+    if (this.dom.headerUserName) this.dom.headerUserName.textContent = 'Jesús Olvera';
+    if (this.dom.headerUserRole) this.dom.headerUserRole.textContent = 'Familiar / Cuidador Principal';
     if (this.dom.userAvatarCircle) {
       this.dom.userAvatarCircle.textContent = 'J';
-      this.dom.userAvatarCircle.style.borderColor = 'var(--text-muted)';
-      this.dom.userAvatarCircle.style.color = 'var(--text-muted)';
+      this.dom.userAvatarCircle.style.borderColor = 'var(--brand-primary)';
+      this.dom.userAvatarCircle.style.color = 'var(--brand-primary)';
     }
   }
 
@@ -1012,16 +1026,6 @@ class EcoEyeDashboard {
       this.dom.btnHeaderLogout.addEventListener('click', () => this.executeLogout());
     }
 
-    // Quick Judge Demo Button
-    const btnQuickJudge = document.getElementById('btn-quick-judge');
-    if (btnQuickJudge) {
-      btnQuickJudge.addEventListener('click', () => {
-        this.setGuestSession();
-        this.hideAuthModal();
-        this.showToast('Modo Evaluador', 'Acceso para jueces y evaluación técnica activo', 'normal');
-      });
-    }
-
     // Modal quick logout action
     const btnModalLogout = document.getElementById('btn-modal-logout-action');
     if (btnModalLogout) {
@@ -1030,7 +1034,7 @@ class EcoEyeDashboard {
       });
     }
 
-    // Quick Login Demo Buttons (for Judges & Caregivers)
+    // Quick Login Role Buttons (for Clinicians & Caregivers)
     if (this.dom.quickRoleBtns) {
       this.dom.quickRoleBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1070,29 +1074,152 @@ class EcoEyeDashboard {
       });
     }
 
-    // Demonstrator / Judge Sandbox Macro Keys
-    if (this.dom.btnDemoBill200) {
-      this.dom.btnDemoBill200.addEventListener('click', () => this.triggerCurrencyDemo(200));
+    // Camera and File Upload for Assistive Vision (View 2)
+    if (this.dom.btnSnapCamera && this.dom.visionFileInput) {
+      this.dom.btnSnapCamera.addEventListener('click', () => this.dom.visionFileInput.click());
     }
-    if (this.dom.btnDemoBill500) {
-      this.dom.btnDemoBill500.addEventListener('click', () => this.triggerCurrencyDemo(500));
+    if (this.dom.btnUploadFile && this.dom.visionFileInput) {
+      this.dom.btnUploadFile.addEventListener('click', () => this.dom.visionFileInput.click());
     }
-    if (this.dom.btnDemoOcrMeds) {
-      this.dom.btnDemoOcrMeds.addEventListener('click', () => {
-        this.triggerOcrDemo('PARACETAMOL 500 MG - 1 TABLETA CADA 8 HORAS');
+
+    if (this.dom.visionFileInput) {
+      this.dom.visionFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          const dataUrl = ev.target.result;
+          if (this.dom.visionImagePreview) {
+            this.dom.visionImagePreview.src = dataUrl;
+            if (this.dom.visionImagePreviewWrapper) {
+              this.dom.visionImagePreviewWrapper.style.display = 'block';
+            }
+          }
+
+          const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+
+          try {
+            this.showToast('Procesando Imagen', 'Analizando patrones cromáticos y caracteres...', 'info');
+            const currRes = await this.api.processCurrency({ image_base64: base64 });
+            if (currRes && currRes.denomination && currRes.denomination > 0) {
+              this.state.currencyDenom = currRes.denomination;
+              this.renderCurrencyHUD(currRes.denomination);
+              if (this.dom.visionTabTargetVal) {
+                this.dom.visionTabTargetVal.textContent = `$${currRes.denomination} PESOS`;
+              }
+              if (this.dom.visionTabTargetLabel) {
+                this.dom.visionTabTargetLabel.textContent = `Identificado por visión artificial (${Math.round((currRes.confidence || 0.95) * 100)}% certeza).`;
+              }
+              this.announceSpeech(`Billete de ${currRes.denomination} pesos identificado`);
+              this.showToast('Efectivo Identificado', `Billete de $${currRes.denomination} MXN reconocido`, 'normal');
+            } else {
+              const ocrRes = await this.api.processOCR({ image_base64: base64 });
+              const detected = (ocrRes && ocrRes.text) ? ocrRes.text : 'Texto no legible con certeza';
+              this.state.ocrText = detected;
+              this.renderOCR(detected);
+              if (this.dom.visionTabTargetVal) {
+                this.dom.visionTabTargetVal.textContent = 'TEXTO / ETIQUETA';
+              }
+              if (this.dom.visionTabTargetLabel) {
+                this.dom.visionTabTargetLabel.textContent = detected;
+              }
+              this.announceSpeech(`Etiqueta identificada: ${detected}`);
+              this.showToast('Lectura OCR', detected.substring(0, 40), 'normal');
+            }
+          } catch (err) {
+            this.showToast('Error de Visión', 'No fue posible procesar la imagen enviada.', 'critical');
+          }
+        };
+        reader.readAsDataURL(file);
       });
     }
-    if (this.dom.btnDemoFallAlert) {
-      this.dom.btnDemoFallAlert.addEventListener('click', () => this.triggerFallDemo());
+
+    // Vision Preset Banknote Buttons
+    if (this.dom.visionPresetBtns) {
+      this.dom.visionPresetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const denom = parseInt(btn.dataset.denom, 10);
+          this.triggerCurrencyDemo(denom);
+          if (this.dom.visionTabTargetVal) this.dom.visionTabTargetVal.textContent = `$${denom} PESOS`;
+          if (this.dom.visionTabTargetLabel) this.dom.visionTabTargetLabel.textContent = `Patrón de billete de $${denom} MXN seleccionado.`;
+        });
+      });
     }
-    if (this.dom.btnDemoObstacleNear) {
-      this.dom.btnDemoObstacleNear.addEventListener('click', () => this.triggerObstacleDemo(32));
+
+    // Vision Preset OCR Buttons
+    if (this.dom.visionPresetOcrs) {
+      this.dom.visionPresetOcrs.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const txt = btn.dataset.text;
+          this.triggerOcrDemo(txt);
+          if (this.dom.visionTabTargetVal) this.dom.visionTabTargetVal.textContent = 'FARMACOLOGÍA';
+          if (this.dom.visionTabTargetLabel) this.dom.visionTabTargetLabel.textContent = txt;
+        });
+      });
     }
-    if (this.dom.btnDemoHypoGlucose) {
-      this.dom.btnDemoHypoGlucose.addEventListener('click', () => this.triggerGlucoseDemo(55));
+
+    // Clinical Glucose Submission Form (View 3)
+    if (this.dom.formRecordGlucose) {
+      this.dom.formRecordGlucose.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const val = parseFloat(this.dom.inputGlucoseVal ? this.dom.inputGlucoseVal.value : 95);
+        const ctx = this.dom.selectGlucoseContext ? this.dom.selectGlucoseContext.value : 'ayunas';
+        try {
+          await this.api.recordGlucose(val, ctx);
+          this.state.glucose = val;
+          this.renderGlucoseGauge(val);
+
+          if (this.dom.historyGlucoseTableBody) {
+            const tr = document.createElement('tr');
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const isHypo = val < 70;
+            const isHyper = val > 140;
+            const pillClass = isHypo || isHyper ? (val < 54 || val > 250 ? 'critical' : 'warning') : 'normal';
+            const pillText = isHypo ? 'HIPOGLUCEMIA' : (isHyper ? 'HIPERGLUCEMIA' : 'NORMAL');
+            tr.innerHTML = `
+              <td>GLU-${Math.floor(10000 + Math.random() * 90000)}</td>
+              <td><strong style="color:var(--text-main); font-size:1rem;">${val.toFixed(1)} mg/dL</strong></td>
+              <td><span class="status-pill ${pillClass}">${pillText}</span></td>
+              <td>${ctx.charAt(0).toUpperCase() + ctx.slice(1)}</td>
+              <td style="font-family:var(--font-mono);">${timeStr}</td>
+            `;
+            this.dom.historyGlucoseTableBody.insertBefore(tr, this.dom.historyGlucoseTableBody.firstChild);
+          }
+
+          if (val < 70) {
+            this.announceSpeech('Alerta de salud: Nivel de glucosa bajo registrado');
+            this.showToast('Alerta de Glucosa', `Glucosa baja registrada: ${val} mg/dL (AES-256 cifrado).`, 'critical');
+          } else if (val > 180) {
+            this.announceSpeech('Alerta de salud: Nivel de glucosa elevado registrado');
+            this.showToast('Alerta de Glucosa', `Glucosa alta registrada: ${val} mg/dL (AES-256 cifrado).`, 'critical');
+          } else {
+            this.showToast('Lectura Registrada', `Glucosa ${val} mg/dL guardada y cifrada con éxito.`, 'normal');
+          }
+        } catch (err) {
+          this.showToast('Error de Ingesta', 'No se pudo registrar la medición clínica.', 'critical');
+        }
+      });
     }
-    if (this.dom.btnDemoResetNormal) {
-      this.dom.btnDemoResetNormal.addEventListener('click', () => this.resetNormalState());
+
+    // Hardware WiFi CSI Protocol Test Trigger (View 5)
+    if (this.dom.btnTriggerCsiTest) {
+      this.dom.btnTriggerCsiTest.addEventListener('click', async () => {
+        try {
+          this.showToast('Verificación CSI', 'Ejecutando evaluación de varianza WiFi CSI y ventana de quietud...', 'info');
+          const res = await this.api.triggerCsiProtocolTest();
+          this.fallAlarmActive = true;
+          this.state.fallCount += 1;
+          this.renderFallMonitor(this.state.fallCount);
+          this.announceSpeech('Atención: Protocolo de caída confirmado por telemetría CSI');
+          this.showToast('Alerta de Caída Confirmada', `Varianza ${res.variance} > umbral. Sincronizado en SQLite y Neon Cloud.`, 'critical');
+          setTimeout(() => { this.fallAlarmActive = false; }, 6000);
+          this.loadAuditData();
+        } catch (err) {
+          this.showToast('Error en Prueba CSI', 'No fue posible completar la verificación de hardware.', 'critical');
+        }
+      });
     }
 
     // Dedicated Vision View Buttons

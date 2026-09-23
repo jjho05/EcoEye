@@ -132,6 +132,29 @@
       });
     }
 
+    async recordGlucose(valueMgDl, mealContext = 'ayunas', sensorId = 'cgm-dexcom-g7') {
+      return this._fetch('/api/v1/readings/glucose', {
+        method: 'POST',
+        body: JSON.stringify({
+          value_mg_dl: valueMgDl,
+          meal_context: mealContext,
+          sensor_id: sensorId,
+        }),
+      });
+    }
+
+    async triggerCsiProtocolTest(variance = 3.85, inactivitySecs = 4.5, location = 'Sala Principal') {
+      return this._fetch('/api/v1/sensors/csi/test-trigger', {
+        method: 'POST',
+        body: JSON.stringify({
+          variance: variance,
+          inactivity_secs: inactivitySecs,
+          location: location,
+        }),
+      });
+    }
+
+
     // ── Configuration & Sync Management ───────────────────────────────────────
     async getConfig() {
       return this._fetch('/api/v1/config');

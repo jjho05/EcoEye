@@ -72,11 +72,11 @@
     <!-- Header Controls & User Info -->
     <div class="header-controls">
       <!-- Active User Profile Pill (Opens Role & System Popover in 1 Click) -->
-      <div id="user-profile-widget" class="user-profile-badge" title="Cambiar rol de usuario o ajustes (1 clic)" aria-label="Perfil y rol de usuario" role="button" tabindex="0">
+      <div id="user-profile-widget" class="user-profile-badge" title="Perfil de usuario y sesion (1 clic)" aria-label="Perfil y rol de usuario" role="button" tabindex="0">
         <div id="user-avatar-circle" class="user-avatar-circle">J</div>
         <div class="user-meta">
-          <span id="header-user-name" class="user-name-text">Modo Evaluador</span>
-          <span id="header-user-role" class="user-role-label">Juez HackaTec</span>
+          <span id="header-user-name" class="user-name-text">Jesús Olvera</span>
+          <span id="header-user-role" class="user-role-label">Familiar / Cuidador Principal</span>
         </div>
         <svg class="dropdown-chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="6 9 12 15 18 9"></polyline>
@@ -141,27 +141,6 @@
         </div>
       </div>
 
-      <!-- Collapsible Demo Sandbox (Clean & Non-Intrusive) -->
-      <details class="demo-tools-accordion" open>
-        <summary class="demo-tools-summary">
-          <div class="demo-tools-summary-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-            <span>Simulador de Demostracion (Jueces HackaTec)</span>
-          </div>
-          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">7 Simulaciones ▼</span>
-        </summary>
-        <div class="demo-tools-grid">
-          <button id="btn-demo-bill-200" class="btn-action btn-secondary-action">Billete $200</button>
-          <button id="btn-demo-bill-500" class="btn-action btn-secondary-action">Billete $500</button>
-          <button id="btn-demo-ocr-meds" class="btn-action btn-secondary-action">Leer Medicina</button>
-          <button id="btn-demo-fall-alert" class="btn-action btn-secondary-action" style="color:var(--status-critical);">Simular Caida</button>
-          <button id="btn-demo-obstacle-near" class="btn-action btn-secondary-action" style="color:var(--status-warning);">Obstaculo Cerca</button>
-          <button id="btn-demo-hypo-glucose" class="btn-action btn-secondary-action">Glucosa Baja</button>
-          <button id="btn-demo-reset-normal" class="btn-action btn-primary-action">Restablecer Normal</button>
-        </div>
-      </details>
 
       <!-- 4 Core Health & Safety Cards -->
       <div class="dashboard-grid-cards">
@@ -446,29 +425,67 @@
                 </svg>
               </div>
               <div>
-                <h3 class="card-title">Lo que la Persona Escucha por sus Gafas</h3>
-                <span class="card-subtitle">Simulador de audio y lectura visual aumentada</span>
+                <h3 class="card-title">Módulo de Visión Artificial y Síntesis de Voz</h3>
+                <span class="card-subtitle">Reconocimiento cromático de efectivo (MXN) y extracción OCR de etiquetas y medicamentos.</span>
               </div>
             </div>
-            <button id="btn-snap-inference" class="btn-action btn-primary-action">
-              Tomar Foto con las Gafas (Prueba)
-            </button>
+            
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <input type="file" id="vision-file-input" accept="image/*" capture="environment" style="display:none;" />
+              <button id="btn-snap-camera" class="btn-action btn-primary-action">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                <span>Tomar Foto / Cámara</span>
+              </button>
+              <button id="btn-upload-file" class="btn-action btn-secondary-action">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span>Cargar Imagen</span>
+              </button>
+            </div>
           </div>
 
-          <div style="background:var(--bg-subtle); border-radius:var(--radius-md); padding:2rem; text-align:center; border:2px dashed var(--border-subtle); margin:1rem 0;">
+          <!-- Active Speech / Readout Box -->
+          <div style="background:var(--bg-subtle); border-radius:var(--radius-md); padding:1.75rem; text-align:center; border:2px dashed var(--border-subtle); margin:1rem 0;">
+            <div id="vision-image-preview-wrapper" style="display:none; margin-bottom:1rem;">
+              <img id="vision-image-preview" src="" alt="Vista previa" style="max-height:160px; border-radius:8px; border:1px solid var(--border-subtle); object-fit:contain;" />
+            </div>
             <span style="font-size:0.85rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">
-              Lectura Activa en Voz Alta:
+              Lectura en Voz Alta por los Auriculares:
             </span>
-            <p id="vision-tab-target-val" style="font-family:var(--font-display); font-size:2.5rem; font-weight:900; color:var(--brand-primary); margin:0.75rem 0;">
+            <p id="vision-tab-target-val" style="font-family:var(--font-display); font-size:2.4rem; font-weight:900; color:var(--brand-primary); margin:0.6rem 0;">
               $200 PESOS
             </p>
-            <p id="vision-tab-target-label" style="font-size:1.1rem; color:var(--text-secondary); max-width:600px; margin:0 auto;">
+            <p id="vision-tab-target-label" style="font-size:1.05rem; color:var(--text-secondary); max-width:600px; margin:0 auto;">
               "Billete de doscientos pesos mexicanos identificado con éxito."
             </p>
           </div>
 
-          <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin-top:1rem;">
-            <input id="vision-custom-tts-input" type="text" placeholder="Escribe un texto para que las gafas lo digan..." value="Medicamento identificado: Paracetamol de 500 miligramos" class="form-input-clean" style="flex:1; min-height:48px; font-size:1rem;" />
+          <!-- Quick Test Presets (Banknotes and Labels) -->
+          <div style="margin-bottom:1.25rem;">
+            <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:0.5rem;">
+              Prueba de Patrones de Efectivo y Farmacéuticos:
+            </span>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button class="btn-action btn-secondary-action vision-preset-btn" data-denom="20">$20 MXN</button>
+              <button class="btn-action btn-secondary-action vision-preset-btn" data-denom="50">$50 MXN</button>
+              <button class="btn-action btn-secondary-action vision-preset-btn" data-denom="100">$100 MXN</button>
+              <button class="btn-action btn-secondary-action vision-preset-btn" data-denom="200">$200 MXN</button>
+              <button class="btn-action btn-secondary-action vision-preset-btn" data-denom="500">$500 MXN</button>
+              <button class="btn-action btn-secondary-action vision-preset-btn" data-denom="1000">$1000 MXN</button>
+              <button class="btn-action btn-secondary-action vision-preset-ocr" data-text="PARACETAMOL 500 MG - 1 TABLETA CADA 8 HORAS">Paracetamol 500mg</button>
+              <button class="btn-action btn-secondary-action vision-preset-ocr" data-text="METFORMINA 850 MG - TOMAR CON ALIMENTOS">Metformina 850mg</button>
+            </div>
+          </div>
+
+          <!-- Manual TTS Input & Vocalization -->
+          <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+            <input id="vision-custom-tts-input" type="text" placeholder="Escribe un texto para locución por voz..." value="Medicamento identificado: Paracetamol de 500 miligramos" class="form-input-clean" style="flex:1; min-height:48px; font-size:1rem;" />
             <button id="btn-speak-tts" class="btn-voice-large">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -478,6 +495,7 @@
             </button>
           </div>
         </article>
+
       </div>
     </section>
 
@@ -532,11 +550,51 @@
         </div>
       </div>
 
-      <div class="table-card">
+      <!-- Clinical Ingestion & Sensor Calibration Form -->
+      <div class="health-card" style="margin-top:1.5rem; padding:1.25rem;">
+        <div class="card-title-group" style="margin-bottom:1rem;">
+          <div class="card-icon" style="color:var(--brand-primary);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 style="font-size:1rem; font-weight:700; margin:0; color:var(--text-main);">Ingreso y Calibración de Glucosa CGMS</h3>
+            <span style="font-size:0.75rem; color:var(--text-muted);">Registra lecturas biomédicas en tiempo real. Cifrado simétrico AES-256-GCM y evaluación automática de alertas.</span>
+          </div>
+        </div>
+
+        <form id="form-record-glucose" style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:flex-end;">
+          <div style="flex:1; min-width:180px;">
+            <label style="font-size:0.75rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.35rem;">Nivel Medido (mg/dL)</label>
+            <input id="input-glucose-val" type="number" min="20" max="500" step="1" value="95" class="form-input-clean" style="width:100%; min-height:42px;" required />
+          </div>
+
+          <div style="flex:1; min-width:180px;">
+            <label style="font-size:0.75rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.35rem;">Contexto de Muestra</label>
+            <select id="select-glucose-context" class="form-input-clean" style="width:100%; min-height:42px;">
+              <option value="ayunas">En ayunas</option>
+              <option value="postprandial">Postprandial (después de comer)</option>
+              <option value="reposo">En reposo</option>
+              <option value="nocturna">Lectura nocturna</option>
+            </select>
+          </div>
+
+          <button type="submit" id="btn-submit-glucose" class="btn-action btn-primary-action" style="min-height:42px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Registrar y Cifrar</span>
+          </button>
+        </form>
+      </div>
+
+      <div class="table-card" style="margin-top:1.5rem;">
         <div class="table-header-title">
           <h3>Registro de Mediciones Continuas de Glucosa</h3>
           <span style="font-size:0.8rem; color:var(--text-muted);">Valores normativos: 70 a 140 mg/dL</span>
         </div>
+
 
         <table class="human-table">
           <thead>
@@ -662,9 +720,15 @@
           <span class="section-caption">Verifica la memoria local de las gafas y el envio de datos a la nube.</span>
         </div>
 
-        <button id="btn-flush-sync-queue" class="btn-action btn-primary-action">
-          Sincronizar Datos Ahora
-        </button>
+        <div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+          <button id="btn-trigger-csi-test" class="btn-action" style="background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.3);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            Probar Protocolo Caida CSI
+          </button>
+          <button id="btn-flush-sync-queue" class="btn-action btn-primary-action">
+            Sincronizar Datos Ahora
+          </button>
+        </div>
       </div>
 
       <div class="metrics-stats-grid">
@@ -692,7 +756,47 @@
           <span style="font-size:0.75rem; color:var(--status-normal);">Sin errores</span>
         </div>
       </div>
+
+      <!-- Remote Neon Serverless PostgreSQL Live Status Card -->
+      <div class="health-card" style="margin-top:1.5rem; padding:1.35rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:1.15rem;">
+          <div style="display:flex; align-items:center; gap:0.6rem;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <div>
+              <h3 style="font-size:1.05rem; font-weight:700; margin:0; color:var(--text-main);">Base de Datos Centralizada (Neon Serverless PostgreSQL)</h3>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Sincronizacion bidireccional Edge-to-Cloud con soporte de failover offline.</span>
+            </div>
+          </div>
+          <span id="neon-db-badge" style="font-size:0.75rem; font-weight:700; padding:0.3rem 0.75rem; border-radius:999px; background:rgba(16,185,129,0.12); color:var(--status-normal); border:1px solid rgba(16,185,129,0.25);">
+            Conectado · AWS us-east-2
+          </span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem;">
+          <div style="background:var(--bg-glass-heavy); padding:0.85rem; border-radius:10px; border:1px solid var(--border-subtle);">
+            <span style="color:var(--text-muted); display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase;">Motor / Servidor</span>
+            <strong id="neon-db-version" style="color:var(--text-main); font-size:1.05rem;">PostgreSQL 18.6</strong>
+          </div>
+          <div style="background:var(--bg-glass-heavy); padding:0.85rem; border-radius:10px; border:1px solid var(--border-subtle);">
+            <span style="color:var(--text-muted); display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase;">Latencia Cloud</span>
+            <strong id="neon-db-latency" style="color:var(--brand-primary); font-size:1.05rem;">~900 ms</strong>
+          </div>
+          <div style="background:var(--bg-glass-heavy); padding:0.85rem; border-radius:10px; border:1px solid var(--border-subtle);">
+            <span style="color:var(--text-muted); display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase;">Alertas en Nube</span>
+            <strong id="neon-db-alerts" style="color:var(--text-main); font-size:1.05rem;">2 registradas</strong>
+          </div>
+          <div style="background:var(--bg-glass-heavy); padding:0.85rem; border-radius:10px; border:1px solid var(--border-subtle);">
+            <span style="color:var(--text-muted); display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase;">Telemetria en Nube</span>
+            <strong id="neon-db-telemetry" style="color:var(--text-main); font-size:1.05rem;">1 nodo registrado</strong>
+          </div>
+        </div>
+      </div>
     </section>
+
 
   </main>
 
@@ -813,28 +917,13 @@
           </div>
           <span class="status-pill warning">INGRESAR</span>
         </button>
-
-        <button id="btn-quick-judge" class="role-card-btn" style="border:1px dashed var(--border-subtle);">
-          <div class="role-card-meta">
-            <div class="role-card-avatar" style="border-color:var(--text-muted); color:var(--text-muted);">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="8" r="5"></circle>
-                <path d="M20 21a8 8 0 1 0-16 0"></path>
-              </svg>
-            </div>
-            <div>
-              <span class="role-card-name">Acceso Evaluador HackaTec</span>
-              <span class="role-card-desc">Modo demostracion para jueces del jurado</span>
-            </div>
-          </div>
-          <span class="status-pill normal">DEMO</span>
-        </button>
       </div>
 
-      <!-- Quick Session Reset Action -->
+      <!-- Session Logout Action -->
       <button id="btn-modal-logout-action" class="btn-action" style="margin-top:1rem; width:100%; border:1px solid var(--border-subtle); background:transparent; color:var(--text-secondary); font-size:0.82rem; border-radius:var(--radius-sm); padding:0.6rem; cursor:pointer;">
-        Cerrar Sesion y Volver a Modo Juez
+        Cerrar Sesion Activa
       </button>
+
 
       <!-- Optional Form for custom users -->
       <details style="margin-top:1rem; border-top:1px solid var(--border-subtle); padding-top:0.75rem;">

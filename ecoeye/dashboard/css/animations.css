@@ -1,72 +1,84 @@
 /**
- * EcoEye Micro-Animations & Dynamic Feedback
- * Zero-jank keyframes, radar sweeps, status pulses, and view transitions.
+ * EcoEye Micro-Animations & Dynamic Motion
+ * Radar sweeps, HUD laser scanners, heartbeat pulses, and focus reticles.
  */
 
-@keyframes pulseGlow {
-  0% {
-    transform: scale(0.98);
-    opacity: 0.7;
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-  }
-  70% {
-    transform: scale(1);
-    opacity: 1;
-    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
-  }
-  100% {
-    transform: scale(0.98);
-    opacity: 0.7;
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-  }
-}
-
-@keyframes pulseWarning {
-  0% {
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.45);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
-  }
-}
-
-@keyframes pulseCritical {
-  0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
-  }
-  70% {
-    box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-  }
-}
-
 @keyframes radarSweep {
-  0% {
+  from {
     transform: rotate(0deg);
   }
-  100% {
+  to {
     transform: rotate(360deg);
   }
 }
 
-@keyframes blinkLive {
+@keyframes pingObstacle {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1.4);
+    opacity: 0.8;
+    box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes pingNormal {
   0%, 100% {
+    transform: scale(1);
     opacity: 1;
   }
   50% {
-    opacity: 0.3;
+    transform: scale(1.25);
+    opacity: 0.6;
+  }
+}
+
+@keyframes hudScanLaser {
+  0% {
+    top: 5%;
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  100% {
+    top: 95%;
+    opacity: 0.2;
+  }
+}
+
+@keyframes reticlePulse {
+  0%, 100% {
+    border-color: rgba(6, 182, 212, 0.6);
+    transform: scale(1);
+  }
+  50% {
+    border-color: rgba(16, 185, 129, 0.9);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes waveOscillate {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -120;
   }
 }
 
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -74,24 +86,31 @@
   }
 }
 
-/* Micro-Animation Utility Classes */
-.animate-pulse-live {
-  animation: blinkLive 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+/* Micro-Interaction Utility Classes */
+.animate-radar-sweep {
+  animation: radarSweep 3.2s linear infinite;
 }
 
-.animate-status-warning {
-  animation: pulseWarning 1.8s infinite;
+.animate-obstacle-ping {
+  animation: pingObstacle 1.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
-.animate-status-critical {
-  animation: pulseCritical 1.2s infinite;
+.animate-status-live {
+  animation: pingNormal 2s ease-in-out infinite;
 }
 
-.fade-in-entry {
-  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-hud-scanner {
+  animation: hudScanLaser 2.4s ease-in-out infinite alternate;
 }
 
-/* Reduced motion preference compliance */
+.animate-reticle {
+  animation: reticlePulse 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

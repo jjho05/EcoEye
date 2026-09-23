@@ -39,10 +39,10 @@ def test_root_serves_dashboard_html(isolated_app):
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     html = response.text
-    assert "EcoEye Ambient Sensing Gateway" in html
+    assert "EcoEye Ambient Sensing" in html
     assert 'data-theme="dark"' in html
-    assert "/assets/branding/ecoeye-logo-full-dark.svg" in html
-    assert "/js/app.js" in html
+    assert "ecoeye-logo-full-dark.svg" in html
+    assert "app.js" in html
 
 
 def test_dashboard_route_serves_html(isolated_app):
@@ -50,7 +50,7 @@ def test_dashboard_route_serves_html(isolated_app):
     response = isolated_app.get("/dashboard/")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert "Radar de Proximidad" in response.text
+    assert "Radar de Navegacion Espacial" in response.text
 
 
 def test_css_stylesheets_served(isolated_app):

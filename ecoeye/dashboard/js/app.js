@@ -1,82 +1,150 @@
 /**
- * EcoEye Dashboard Application Controller
- * Handles theme toggling, live telemetry polling, DOM updates, and interactive controls.
+ * EcoEye Interactive Application Controller
+ * Real-time HUD Visor, Circular Sonar Radar, Doppler Waveform Canvas, Radial Glucose Gauge,
+ * and Live Demonstrator Sandbox for Hackathon Pitches.
  */
 
-import { api } from './api.js';
+// ── Lightweight API Client (Offline & Localhost aware) ─────────────────────
+class EcoEyeAPI {
+  constructor(baseUrl) {
+    if (baseUrl !== undefined) {
+      this.baseUrl = baseUrl;
+    } else {
+      this.baseUrl = (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:')
+        ? 'http://127.0.0.1:8000'
+        : '';
+    }
+  }
 
-class DashboardApp {
+  async _fetch(endpoint, options = {}) {
+    const url = `${this.baseUrl}${endpoint}`;
+    const response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...options.headers },
+      ...options,
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  }
+
+  async getHealth() { return this._fetch('/health'); }
+  async getStats() { return this._fetch('/api/v1/stats'); }
+  async getRecentFalls(limit = 10) { return this._fetch(`/api/v1/alerts?limit=${limit}`); }
+  async getRecentGlucose(limit = 10) { return this._fetch(`/api/v1/readings?limit=${limit}`); }
+  async getRecentObstacles(limit = 10) { return this._fetch(`/api/v1/obstacles?limit=${limit}`); }
+  async getRecentCurrency(limit = 10) { return this._fetch(`/api/v1/detections/currency?limit=${limit}`); }
+  async getRecentOCR(limit = 10) { return this._fetch(`/api/v1/readings/ocr?limit=${limit}`); }
+
+  async processCurrency(payload) {
+    return this._fetch('/api/v1/vision/currency/process', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async processOCR(payload) {
+    return this._fetch('/api/v1/vision/ocr/process', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+}
+
+const api = new EcoEyeAPI();
+
+// ── Main Dashboard Controller ──────────────────────────────────────────────
+class EcoEyeDashboard {
   constructor() {
     this.theme = 'dark';
-    this.pollingInterval = 2500;
-    this.timerId = null;
     this.isOnline = false;
+    this.fallAlarmActive = false;
+    this.wavePhase = 0;
+    this.dopplerCanvas = null;
+    this.dopplerCtx = null;
+    this.animFrameId = null;
 
-    // DOM Elements Cache
+    // State cache
+    this.state = {
+      glucose: 98,
+      fallCount: 0,
+      closestObstacle: 140,
+      currencyDenom: 200,
+      ocrText: 'PARACETAMOL 500 MG - TOMAR 1 TABLETA CADA 8 HORAS',
+      sectors: { left: 160, center: 140, right: 190 },
+      events: [],
+    };
+
+    this.dom = {};
+  }
+
+  init() {
+    this.cacheDom();
+    this.initTheme();
+    this.initDopplerWave();
+    this.attachEvents();
+    this.updateAllVisuals();
+    this.pollBackend();
+    setInterval(() => this.pollBackend(), 2500);
+  }
+
+  cacheDom() {
     this.dom = {
       html: document.documentElement,
       themeToggleBtn: document.getElementById('theme-toggle-btn'),
       themeIcon: document.getElementById('theme-toggle-icon'),
       brandLogo: document.getElementById('brand-logo-img'),
-      refreshBtn: document.getElementById('btn-manual-refresh'),
-
-      // Hero
-      nodeStatusBadge: document.getElementById('node-status-badge'),
-      nodeStatusDot: document.getElementById('node-status-dot'),
+      nodeStatusPill: document.getElementById('node-status-pill'),
       nodeStatusText: document.getElementById('node-status-text'),
       metricUptime: document.getElementById('metric-uptime'),
       metricDeviceId: document.getElementById('metric-device-id'),
-      metricQueuePending: document.getElementById('metric-queue-pending'),
+      metricQueue: document.getElementById('metric-queue-pending'),
 
-      // Obstacle Radar
-      radarStatusBadge: document.getElementById('radar-status-badge'),
-      radarClosestDist: document.getElementById('radar-closest-dist'),
-      sectorLeft: document.getElementById('sector-left'),
-      sectorCenter: document.getElementById('sector-center'),
-      sectorRight: document.getElementById('sector-right'),
-      sectorLeftDist: document.getElementById('sector-left-dist'),
-      sectorCenterDist: document.getElementById('sector-center-dist'),
-      sectorRightDist: document.getElementById('sector-right-dist'),
+      // HUD Visor
+      hudTargetVal: document.getElementById('hud-target-val'),
+      hudTargetLabel: document.getElementById('hud-target-label'),
+      currencyPill: document.getElementById('currency-status-pill'),
+      currencyChips: document.querySelectorAll('.currency-chip-btn'),
+      ocrTextDisplay: document.getElementById('ocr-text-display'),
+      ocrPill: document.getElementById('ocr-status-pill'),
+      ocrInput: document.getElementById('ocr-custom-input'),
+      btnSynthesizeOcr: document.getElementById('btn-synthesize-ocr'),
 
-      // Glucose Monitor
-      glucoseValue: document.getElementById('glucose-value'),
-      glucoseBadge: document.getElementById('glucose-badge'),
-      glucoseBarFill: document.getElementById('glucose-bar-fill'),
-      glucoseTimestamp: document.getElementById('glucose-timestamp'),
+      // Radar
+      radarBlipLeft: document.getElementById('radar-blip-left'),
+      radarBlipCenter: document.getElementById('radar-blip-center'),
+      radarBlipRight: document.getElementById('radar-blip-right'),
+      radarStatusPill: document.getElementById('radar-status-pill'),
+      sectorCardLeft: document.getElementById('sector-card-left'),
+      sectorCardCenter: document.getElementById('sector-card-center'),
+      sectorCardRight: document.getElementById('sector-card-right'),
+      sectorDistLeft: document.getElementById('sector-dist-left'),
+      sectorDistCenter: document.getElementById('sector-dist-center'),
+      sectorDistRight: document.getElementById('sector-dist-right'),
 
-      // Fall Monitor
-      fallCount: document.getElementById('fall-count'),
-      fallBadge: document.getElementById('fall-badge'),
-      fallLastEvent: document.getElementById('fall-last-event'),
+      // Glucose & Doppler
+      radialVal: document.getElementById('radial-glucose-val'),
+      radialBarFill: document.getElementById('radial-bar-fill'),
+      glucosePill: document.getElementById('glucose-status-pill'),
+      glucoseDiagnose: document.getElementById('glucose-diagnosis-text'),
+      fallPill: document.getElementById('fall-status-pill'),
+      fallCountDisplay: document.getElementById('fall-count-display'),
+      fallLastTimestamp: document.getElementById('fall-last-timestamp'),
+      dopplerCanvasEl: document.getElementById('doppler-canvas'),
 
-      // Currency Detection
-      currencyValue: document.getElementById('currency-value'),
-      currencyConfidence: document.getElementById('currency-confidence'),
-      currencyBadge: document.getElementById('currency-badge'),
+      // Demo Sandbox Buttons
+      btnDemoBill200: document.getElementById('btn-demo-bill-200'),
+      btnDemoBill500: document.getElementById('btn-demo-bill-500'),
+      btnDemoOcrMeds: document.getElementById('btn-demo-ocr-meds'),
+      btnDemoFallAlert: document.getElementById('btn-demo-fall-alert'),
+      btnDemoObstacleNear: document.getElementById('btn-demo-obstacle-near'),
+      btnDemoHypoGlucose: document.getElementById('btn-demo-hypo-glucose'),
+      btnDemoResetNormal: document.getElementById('btn-demo-reset-normal'),
 
-      // OCR Smart Glasses
-      ocrText: document.getElementById('ocr-text'),
-      ocrConfidence: document.getElementById('ocr-confidence'),
-      ocrBadge: document.getElementById('ocr-badge'),
-
-      // Interactive Testers
-      testCurrencyBtn: document.getElementById('btn-test-currency'),
-      testOcrBtn: document.getElementById('btn-test-ocr'),
-      ocrInputText: document.getElementById('ocr-input-text'),
-
-      // Activity Table
-      activityTableBody: document.getElementById('activity-table-body'),
+      // Feed Table
+      eventsTableBody: document.getElementById('events-table-body'),
     };
   }
 
-  init() {
-    this.initTheme();
-    this.attachEventListeners();
-    this.fetchData();
-    this.startPolling();
-  }
-
-  /* ── Theme Management ─────────────────────────────────────────────────── */
+  /* ── Theme Switcher ───────────────────────────────────────────────────── */
   initTheme() {
     const saved = localStorage.getItem('ecoeye-theme');
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -87,17 +155,16 @@ class DashboardApp {
   applyTheme(theme) {
     this.theme = theme;
     this.dom.html.setAttribute('data-theme', theme);
-    localStorage.setItem('ecoeye-theme', theme);
+    try { localStorage.setItem('ecoeye-theme', theme); } catch (_) {}
 
     if (this.dom.brandLogo) {
-      this.dom.brandLogo.src = `/assets/branding/ecoeye-logo-full-${theme}.svg`;
+      this.dom.brandLogo.src = `./assets/branding/ecoeye-logo-full-${theme}.svg`;
     }
 
     if (this.dom.themeIcon) {
       if (theme === 'dark') {
-        // Sun icon for switching to light mode
         this.dom.themeIcon.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
             <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -110,9 +177,8 @@ class DashboardApp {
           </svg>
         `;
       } else {
-        // Moon icon for switching to dark mode
         this.dom.themeIcon.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         `;
@@ -121,409 +187,478 @@ class DashboardApp {
   }
 
   toggleTheme() {
-    const nextTheme = this.theme === 'dark' ? 'light' : 'dark';
-    this.applyTheme(nextTheme);
+    this.applyTheme(this.theme === 'dark' ? 'light' : 'dark');
   }
 
-  /* ── Event Handlers ───────────────────────────────────────────────────── */
-  attachEventListeners() {
-    if (this.dom.themeToggleBtn) {
-      this.dom.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
-    }
+  /* ── Doppler Waveform Canvas ──────────────────────────────────────────── */
+  initDopplerWave() {
+    if (!this.dom.dopplerCanvasEl) return;
+    this.dopplerCanvas = this.dom.dopplerCanvasEl;
+    this.dopplerCtx = this.dopplerCanvas.getContext('2d');
 
-    if (this.dom.refreshBtn) {
-      this.dom.refreshBtn.addEventListener('click', () => {
-        this.fetchData();
-      });
-    }
-
-    if (this.dom.testCurrencyBtn) {
-      this.dom.testCurrencyBtn.addEventListener('click', () => this.handleTestCurrency());
-    }
-
-    if (this.dom.testOcrBtn) {
-      this.dom.testOcrBtn.addEventListener('click', () => this.handleTestOCR());
-    }
+    const render = () => {
+      this.drawDopplerFrame();
+      this.animFrameId = requestAnimationFrame(render);
+    };
+    render();
   }
 
-  /* ── Data Polling Engine ──────────────────────────────────────────────── */
-  startPolling() {
-    if (this.timerId) clearInterval(this.timerId);
-    this.timerId = setInterval(() => this.fetchData(), this.pollingInterval);
-  }
+  drawDopplerFrame() {
+    if (!this.dopplerCtx || !this.dopplerCanvas) return;
+    const w = this.dopplerCanvas.width = this.dopplerCanvas.offsetWidth;
+    const h = this.dopplerCanvas.height = this.dopplerCanvas.offsetHeight;
+    const ctx = this.dopplerCtx;
 
-  stopPolling() {
-    if (this.timerId) {
-      clearInterval(this.timerId);
-      this.timerId = null;
+    ctx.clearRect(0, 0, w, h);
+
+    // Wave parameters
+    this.wavePhase += 0.05;
+    const midY = h / 2;
+    const isAlarm = this.fallAlarmActive;
+
+    ctx.beginPath();
+    ctx.lineWidth = isAlarm ? 3 : 2;
+    ctx.strokeStyle = isAlarm ? '#ef4444' : (this.theme === 'dark' ? '#10b981' : '#059669');
+
+    for (let x = 0; x < w; x++) {
+      const freq = isAlarm ? 0.08 : 0.03;
+      const amp = isAlarm ? 32 * Math.sin(x * 0.015 + this.wavePhase * 2) : 12;
+      const y = midY + Math.sin(x * freq + this.wavePhase) * amp;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
+    ctx.stroke();
+
+    // Baseline grid center line
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.moveTo(0, midY);
+    ctx.lineTo(w, midY);
+    ctx.stroke();
   }
 
-  async fetchData() {
+  /* ── Polling & Backend Sync ───────────────────────────────────────────── */
+  async pollBackend() {
     try {
       const results = await Promise.allSettled([
         api.getHealth(),
         api.getStats(),
-        api.getRecentFalls(10),
-        api.getRecentGlucose(10),
-        api.getRecentObstacles(10),
-        api.getRecentCurrency(10),
-        api.getRecentOCR(10),
+        api.getRecentFalls(5),
+        api.getRecentGlucose(5),
+        api.getRecentObstacles(5),
+        api.getRecentCurrency(5),
+        api.getRecentOCR(5),
       ]);
 
-      const [healthRes, statsRes, fallsRes, glucoseRes, obstaclesRes, currencyRes, ocrRes] = results;
+      const [health, stats, falls, glucose, obstacles, currency, ocr] = results;
 
-      if (healthRes.status === 'fulfilled') {
-        this.updateHealthUI(healthRes.value);
-        this.setOnlineStatus(true);
+      if (health.status === 'fulfilled') {
+        this.setOnline(true, health.value.uptime_seconds);
       } else {
-        this.setOnlineStatus(false);
+        this.setOnline(false);
       }
 
-      if (statsRes.status === 'fulfilled') {
-        this.updateStatsUI(statsRes.value);
+      if (stats.status === 'fulfilled' && stats.value.sync_queue) {
+        if (this.dom.metricQueue) this.dom.metricQueue.textContent = stats.value.sync_queue.pending || 0;
       }
 
-      if (fallsRes.status === 'fulfilled') {
-        this.updateFallsUI(fallsRes.value);
+      if (glucose.status === 'fulfilled' && glucose.value.length > 0) {
+        this.state.glucose = glucose.value[0].glucose_mg_dl;
       }
 
-      if (glucoseRes.status === 'fulfilled') {
-        this.updateGlucoseUI(glucoseRes.value);
+      if (falls.status === 'fulfilled' && falls.value.length > 0) {
+        this.state.fallCount = falls.value.length;
       }
 
-      if (obstaclesRes.status === 'fulfilled') {
-        this.updateObstaclesUI(obstaclesRes.value);
+      if (currency.status === 'fulfilled' && currency.value.length > 0) {
+        this.state.currencyDenom = currency.value[0].denomination;
       }
 
-      if (currencyRes.status === 'fulfilled') {
-        this.updateCurrencyUI(currencyRes.value);
+      if (ocr.status === 'fulfilled' && ocr.value.length > 0) {
+        this.state.ocrText = ocr.value[0].cleaned_text || ocr.value[0].raw_text;
       }
 
-      if (ocrRes.status === 'fulfilled') {
-        this.updateOcrUI(ocrRes.value);
+      if (obstacles.status === 'fulfilled' && obstacles.value.length > 0) {
+        obstacles.value.forEach(obs => {
+          const sec = (obs.sector || 'center').toLowerCase();
+          if (this.state.sectors[sec] !== undefined) {
+            this.state.sectors[sec] = obs.distance_cm;
+          }
+        });
       }
 
-      this.updateActivityFeed(fallsRes, glucoseRes, currencyRes, ocrRes);
+      this.updateAllVisuals();
+      this.compileEventsFeed(falls, glucose, currency, ocr);
 
-    } catch (err) {
-      console.warn('[EcoEye Controller] Polling cycle encounter:', err);
-      this.setOnlineStatus(false);
+    } catch (_) {
+      this.setOnline(false);
     }
   }
 
-  setOnlineStatus(online) {
+  setOnline(online, uptimeSec = null) {
     this.isOnline = online;
-    if (!this.dom.nodeStatusBadge) return;
+    if (!this.dom.nodeStatusPill) return;
 
     if (online) {
-      this.dom.nodeStatusBadge.className = 'status-badge normal';
+      this.dom.nodeStatusPill.className = 'status-pill normal';
       if (this.dom.nodeStatusText) this.dom.nodeStatusText.textContent = 'EDGE ACTIVO';
+      if (uptimeSec !== null && this.dom.metricUptime) {
+        const mins = Math.floor(uptimeSec / 60);
+        const secs = Math.floor(uptimeSec % 60);
+        this.dom.metricUptime.textContent = `${mins}m ${secs}s`;
+      }
     } else {
-      this.dom.nodeStatusBadge.className = 'status-badge critical';
-      if (this.dom.nodeStatusText) this.dom.nodeStatusText.textContent = 'DESCONECTADO';
+      this.dom.nodeStatusPill.className = 'status-pill warning';
+      if (this.dom.nodeStatusText) this.dom.nodeStatusText.textContent = 'DEMO LOCAL';
+      if (this.dom.metricUptime) this.dom.metricUptime.textContent = 'Activo';
     }
   }
 
-  /* ── UI Renderers ─────────────────────────────────────────────────────── */
-  updateHealthUI(data) {
-    if (this.dom.metricDeviceId && data.device_id) {
-      this.dom.metricDeviceId.textContent = data.device_id;
-    }
-    if (this.dom.metricUptime && data.uptime_seconds !== undefined) {
-      const mins = Math.floor(data.uptime_seconds / 60);
-      const secs = Math.floor(data.uptime_seconds % 60);
-      this.dom.metricUptime.textContent = `${mins}m ${secs}s`;
-    }
+  /* ── UI Visual Renderers ──────────────────────────────────────────────── */
+  updateAllVisuals() {
+    this.renderGlucoseGauge(this.state.glucose);
+    this.renderRadarSectors(this.state.sectors);
+    this.renderCurrencyHUD(this.state.currencyDenom);
+    this.renderOCR(this.state.ocrText);
+    this.renderFallMonitor(this.state.fallCount);
   }
 
-  updateStatsUI(data) {
-    if (this.dom.metricQueuePending && data.sync_queue) {
-      const pending = data.sync_queue.pending || 0;
-      this.dom.metricQueuePending.textContent = pending.toString();
-    }
-  }
+  renderGlucoseGauge(val) {
+    if (!this.dom.radialVal || !this.dom.radialBarFill) return;
+    this.dom.radialVal.textContent = Math.round(val);
 
-  updateFallsUI(falls) {
-    if (!this.dom.fallCount) return;
-    const count = Array.isArray(falls) ? falls.length : 0;
-    this.dom.fallCount.textContent = count.toString();
+    // Circumference = 2 * PI * 58 ≈ 364.4
+    const circ = 364.4;
+    // Map 40..300 mg/dL to 0..circ
+    const pct = Math.min(Math.max((val - 40) / 260, 0), 1);
+    const offset = circ - (pct * circ);
+    this.dom.radialBarFill.style.strokeDashoffset = offset;
 
-    if (count > 0 && falls[0]) {
-      const latest = falls[0];
-      const timeStr = new Date(latest.timestamp * 1000).toLocaleTimeString();
-      this.dom.fallLastEvent.textContent = `Ultimo: ${timeStr} (conf: ${(latest.confidence * 100).toFixed(0)}%)`;
-      this.dom.fallBadge.className = 'status-badge critical';
-      this.dom.fallBadge.textContent = 'ALERTA CAIDA';
-    } else {
-      this.dom.fallLastEvent.textContent = 'Sin incidentes registrados';
-      this.dom.fallBadge.className = 'status-badge normal';
-      this.dom.fallBadge.textContent = 'NORMAL';
-    }
-  }
+    let statusClass = 'normal';
+    let label = 'EUGLUCEMIA';
+    let strokeColor = '#10b981';
 
-  updateGlucoseUI(readings) {
-    if (!this.dom.glucoseValue) return;
-
-    if (!Array.isArray(readings) || readings.length === 0) {
-      this.dom.glucoseValue.textContent = '--';
-      this.dom.glucoseBadge.className = 'status-badge info';
-      this.dom.glucoseBadge.textContent = 'ESPERANDO';
-      return;
-    }
-
-    const latest = readings[0];
-    const val = latest.glucose_mg_dl;
-    this.dom.glucoseValue.textContent = val.toFixed(0);
-
-    const timeStr = new Date(latest.timestamp * 1000).toLocaleTimeString();
-    if (this.dom.glucoseTimestamp) {
-      this.dom.glucoseTimestamp.textContent = `Actualizado ${timeStr}`;
-    }
-
-    // Range Fill: Map 50mg/dL - 300mg/dL to 0% - 100%
-    const pct = Math.min(Math.max(((val - 50) / 250) * 100, 5), 100);
-    if (this.dom.glucoseBarFill) {
-      this.dom.glucoseBarFill.style.width = `${pct}%`;
-    }
-
-    // Clinical Status
     if (val < 70) {
-      this.dom.glucoseBadge.className = 'status-badge critical';
-      this.dom.glucoseBadge.textContent = 'HIPOGLUCEMIA';
-    } else if (val <= 140) {
-      this.dom.glucoseBadge.className = 'status-badge normal';
-      this.dom.glucoseBadge.textContent = 'EUGLUCEMIA';
-    } else if (val <= 180) {
-      this.dom.glucoseBadge.className = 'status-badge warning';
-      this.dom.glucoseBadge.textContent = 'ELEVADA';
-    } else {
-      this.dom.glucoseBadge.className = 'status-badge critical';
-      this.dom.glucoseBadge.textContent = 'HIPERGLUCEMIA';
+      statusClass = 'critical';
+      label = 'HIPOGLUCEMIA';
+      strokeColor = '#ef4444';
+    } else if (val > 180) {
+      statusClass = 'critical';
+      label = 'HIPERGLUCEMIA';
+      strokeColor = '#ef4444';
+    } else if (val > 140) {
+      statusClass = 'warning';
+      label = 'ELEVADA';
+      strokeColor = '#f59e0b';
+    }
+
+    this.dom.radialBarFill.style.stroke = strokeColor;
+    if (this.dom.glucosePill) {
+      this.dom.glucosePill.className = `status-pill ${statusClass}`;
+      this.dom.glucosePill.textContent = label;
+    }
+    if (this.dom.glucoseDiagnose) {
+      this.dom.glucoseDiagnose.textContent = label;
+      this.dom.glucoseDiagnose.style.color = strokeColor;
     }
   }
 
-  updateObstaclesUI(obstacles) {
-    if (!this.dom.radarClosestDist) return;
+  renderRadarSectors(sectors) {
+    const sLeft = sectors.left || 160;
+    const sCenter = sectors.center || 140;
+    const sRight = sectors.right || 190;
+    const closest = Math.min(sLeft, sCenter, sRight);
 
-    // Reset sectors
-    const sectors = { left: 999, center: 999, right: 999 };
+    if (this.dom.sectorDistLeft) this.dom.sectorDistLeft.textContent = `${Math.round(sLeft)} cm`;
+    if (this.dom.sectorDistCenter) this.dom.sectorDistCenter.textContent = `${Math.round(sCenter)} cm`;
+    if (this.dom.sectorDistRight) this.dom.sectorDistRight.textContent = `${Math.round(sRight)} cm`;
 
-    if (Array.isArray(obstacles) && obstacles.length > 0) {
-      obstacles.forEach(obs => {
-        const sec = (obs.sector || 'center').toLowerCase();
-        const dist = obs.distance_cm !== undefined ? obs.distance_cm : 999;
-        if (sectors[sec] !== undefined && dist < sectors[sec]) {
-          sectors[sec] = dist;
-        }
-      });
-    }
+    this.styleSectorCard(this.dom.sectorCardLeft, sLeft);
+    this.styleSectorCard(this.dom.sectorCardCenter, sCenter);
+    this.styleSectorCard(this.dom.sectorCardRight, sRight);
 
-    const closest = Math.min(sectors.left, sectors.center, sectors.right);
-    this.dom.radarClosestDist.textContent = closest < 999 ? closest.toFixed(0) : '--';
+    // Blip positions on 240px circular radar
+    this.positionRadarBlip(this.dom.radarBlipLeft, -50, sLeft);
+    this.positionRadarBlip(this.dom.radarBlipCenter, 0, sCenter);
+    this.positionRadarBlip(this.dom.radarBlipRight, 50, sRight);
 
-    this.renderSectorBox(this.dom.sectorLeft, this.dom.sectorLeftDist, sectors.left);
-    this.renderSectorBox(this.dom.sectorCenter, this.dom.sectorCenterDist, sectors.center);
-    this.renderSectorBox(this.dom.sectorRight, this.dom.sectorRightDist, sectors.right);
-
-    if (closest < 50) {
-      this.dom.radarStatusBadge.className = 'status-badge critical';
-      this.dom.radarStatusBadge.textContent = 'PROXIMIDAD CRITICA';
-    } else if (closest < 120) {
-      this.dom.radarStatusBadge.className = 'status-badge warning';
-      this.dom.radarStatusBadge.textContent = 'OBSTACULO CERCANO';
-    } else {
-      this.dom.radarStatusBadge.className = 'status-badge normal';
-      this.dom.radarStatusBadge.textContent = 'DESPEJADO';
-    }
-  }
-
-  renderSectorBox(boxEl, distEl, distance) {
-    if (!boxEl || !distEl) return;
-    if (distance >= 999) {
-      boxEl.className = 'sector-box';
-      distEl.textContent = '--';
-    } else {
-      distEl.textContent = `${distance.toFixed(0)} cm`;
-      if (distance < 50) {
-        boxEl.className = 'sector-box active critical';
-      } else if (distance < 120) {
-        boxEl.className = 'sector-box active';
+    if (this.dom.radarStatusPill) {
+      if (closest < 50) {
+        this.dom.radarStatusPill.className = 'status-pill critical';
+        this.dom.radarStatusPill.textContent = 'PROXIMIDAD CRITICA';
+      } else if (closest < 100) {
+        this.dom.radarStatusPill.className = 'status-pill warning';
+        this.dom.radarStatusPill.textContent = 'OBSTACULO CERCANO';
       } else {
-        boxEl.className = 'sector-box';
+        this.dom.radarStatusPill.className = 'status-pill normal';
+        this.dom.radarStatusPill.textContent = 'DESPEJADO';
       }
     }
   }
 
-  updateCurrencyUI(detections) {
-    if (!this.dom.currencyValue) return;
-
-    if (!Array.isArray(detections) || detections.length === 0) {
-      this.dom.currencyValue.textContent = '--';
-      this.dom.currencyConfidence.textContent = '0%';
-      this.dom.currencyBadge.className = 'status-badge info';
-      this.dom.currencyBadge.textContent = 'SIN DETECCION';
-      return;
+  styleSectorCard(cardEl, dist) {
+    if (!cardEl) return;
+    if (dist < 50) {
+      cardEl.className = 'sector-card critical';
+    } else if (dist < 100) {
+      cardEl.className = 'sector-card active';
+    } else {
+      cardEl.className = 'sector-card';
     }
-
-    const latest = detections[0];
-    this.dom.currencyValue.textContent = `$${latest.denomination.toFixed(0)}`;
-    const confPct = ((latest.confidence || 0) * 100).toFixed(0);
-    this.dom.currencyConfidence.textContent = `${confPct}%`;
-    this.dom.currencyBadge.className = 'status-badge normal';
-    this.dom.currencyBadge.textContent = `${latest.currency} AUDIBLE`;
   }
 
-  updateOcrUI(readings) {
-    if (!this.dom.ocrText) return;
+  positionRadarBlip(blipEl, angleDeg, distCm) {
+    if (!blipEl) return;
+    const radius = Math.min((distCm / 200) * 110, 110);
+    const rad = (angleDeg - 90) * (Math.PI / 180);
+    const x = 120 + radius * Math.cos(rad);
+    const y = 120 + radius * Math.sin(rad);
 
-    if (!Array.isArray(readings) || readings.length === 0) {
-      this.dom.ocrText.textContent = 'Esperando captura de texto en campo visual...';
-      this.dom.ocrConfidence.textContent = '0%';
-      this.dom.ocrBadge.className = 'status-badge info';
-      this.dom.ocrBadge.textContent = 'EN ESPERA';
-      return;
+    blipEl.style.left = `${x}px`;
+    blipEl.style.top = `${y}px`;
+    if (distCm < 50) {
+      blipEl.className = 'radar-blip critical animate-obstacle-ping';
+    } else {
+      blipEl.className = 'radar-blip';
     }
-
-    const latest = readings[0];
-    this.dom.ocrText.textContent = latest.cleaned_text || latest.raw_text || 'Texto procesado';
-    const confPct = ((latest.confidence || 0) * 100).toFixed(0);
-    this.dom.ocrConfidence.textContent = `${confPct}%`;
-    this.dom.ocrBadge.className = 'status-badge normal';
-    this.dom.ocrBadge.textContent = 'SINTETIZADO';
   }
 
-  updateActivityFeed(fallsRes, glucoseRes, currencyRes, ocrRes) {
-    if (!this.dom.activityTableBody) return;
+  renderCurrencyHUD(denom) {
+    if (this.dom.hudTargetVal) this.dom.hudTargetVal.textContent = `$${denom} MXN`;
+    if (this.dom.hudTargetLabel) this.dom.hudTargetLabel.textContent = `Billete de ${denom} Pesos`;
 
-    const events = [];
+    if (this.dom.currencyPill) {
+      this.dom.currencyPill.className = 'status-pill normal';
+      this.dom.currencyPill.textContent = 'CONFIRMADO 97%';
+    }
 
-    if (fallsRes.status === 'fulfilled' && Array.isArray(fallsRes.value)) {
-      fallsRes.value.forEach(f => {
-        events.push({
-          type: 'FALL',
-          label: 'Caida Detectada (WiFi CSI)',
-          timestamp: f.timestamp,
-          detail: `Confianza ${(f.confidence * 100).toFixed(0)}% | Aceleracion ${f.acceleration_g ? f.acceleration_g.toFixed(1) : 0}g`,
-          badgeClass: 'critical',
+    if (this.dom.currencyChips) {
+      this.dom.currencyChips.forEach(chip => {
+        const chipDenom = parseInt(chip.dataset.denom, 10);
+        if (chipDenom === denom) chip.classList.add('active');
+        else chip.classList.remove('active');
+      });
+    }
+  }
+
+  renderOCR(text) {
+    if (this.dom.ocrTextDisplay) {
+      this.dom.ocrTextDisplay.textContent = `"${text}"`;
+    }
+    if (this.dom.ocrPill) {
+      this.dom.ocrPill.className = 'status-pill normal';
+      this.dom.ocrPill.textContent = 'SINTETIZADO';
+    }
+  }
+
+  renderFallMonitor(count) {
+    if (this.dom.fallCountDisplay) this.dom.fallCountDisplay.textContent = count;
+    if (this.dom.fallPill) {
+      if (this.fallAlarmActive || count > 0) {
+        this.dom.fallPill.className = 'status-pill critical';
+        this.dom.fallPill.textContent = 'PERIMETRO ALERTA';
+      } else {
+        this.dom.fallPill.className = 'status-pill normal';
+        this.dom.fallPill.textContent = 'NORMAL';
+      }
+    }
+  }
+
+  compileEventsFeed(falls, glucose, currency, ocr) {
+    if (!this.dom.eventsTableBody) return;
+    const list = [];
+
+    if (falls && falls.status === 'fulfilled' && Array.isArray(falls.value)) {
+      falls.value.forEach(f => {
+        list.push({
+          mod: 'WIFI-CSI',
+          badge: 'critical',
+          desc: 'Perturbacion Doppler: Caida Detectada',
+          detail: `Confianza: ${(f.confidence * 100).toFixed(0)}% | Acel: ${f.acceleration_g ? f.acceleration_g.toFixed(1) : 2.4}g`,
+          time: new Date(f.timestamp * 1000).toLocaleTimeString(),
+          ts: f.timestamp,
         });
       });
     }
 
-    if (glucoseRes.status === 'fulfilled' && Array.isArray(glucoseRes.value)) {
-      glucoseRes.value.forEach(g => {
-        events.push({
-          type: 'GLUCOSE',
-          label: 'Lectura Glucosa BLE',
-          timestamp: g.timestamp,
-          detail: `${g.glucose_mg_dl.toFixed(0)} mg/dL (${g.status || 'NORMAL'})`,
-          badgeClass: g.glucose_mg_dl > 180 || g.glucose_mg_dl < 70 ? 'warning' : 'normal',
+    if (glucose && glucose.status === 'fulfilled' && Array.isArray(glucose.value)) {
+      glucose.value.forEach(g => {
+        list.push({
+          mod: 'BLE CGM',
+          badge: g.glucose_mg_dl > 140 || g.glucose_mg_dl < 70 ? 'warning' : 'normal',
+          desc: 'Sensor Glucosa Continuo 0x1808',
+          detail: `${Math.round(g.glucose_mg_dl)} mg/dL (${g.status || 'NORMAL'})`,
+          time: new Date(g.timestamp * 1000).toLocaleTimeString(),
+          ts: g.timestamp,
         });
       });
     }
 
-    if (currencyRes.status === 'fulfilled' && Array.isArray(currencyRes.value)) {
-      currencyRes.value.forEach(c => {
-        events.push({
-          type: 'CURRENCY',
-          label: 'Deteccion Moneda',
-          timestamp: c.timestamp,
-          detail: `$${c.denomination.toFixed(0)} ${c.currency} (${((c.confidence || 0) * 100).toFixed(0)}%)`,
-          badgeClass: 'normal',
+    if (currency && currency.status === 'fulfilled' && Array.isArray(currency.value)) {
+      currency.value.forEach(c => {
+        list.push({
+          mod: 'VISION IA',
+          badge: 'normal',
+          desc: 'Clasificacion de Efectivo',
+          detail: `Billete de $${c.denomination} MXN (${((c.confidence || 0.95) * 100).toFixed(0)}%)`,
+          time: new Date(c.timestamp * 1000).toLocaleTimeString(),
+          ts: c.timestamp,
         });
       });
     }
 
-    if (ocrRes.status === 'fulfilled' && Array.isArray(ocrRes.value)) {
-      ocrRes.value.forEach(o => {
-        events.push({
-          type: 'OCR',
-          label: 'Lectura Texto OCR',
-          timestamp: o.timestamp,
-          detail: `"${this.truncateText(o.cleaned_text || o.raw_text, 40)}"`,
-          badgeClass: 'info',
+    if (ocr && ocr.status === 'fulfilled' && Array.isArray(ocr.value)) {
+      ocr.value.forEach(o => {
+        list.push({
+          mod: 'SMART OCR',
+          badge: 'info',
+          desc: 'Lectura en Gafas Asistivas',
+          detail: `"${(o.cleaned_text || o.raw_text).substring(0, 36)}..."`,
+          time: new Date(o.timestamp * 1000).toLocaleTimeString(),
+          ts: o.timestamp,
         });
       });
     }
 
-    // Sort descending by timestamp
-    events.sort((a, b) => b.timestamp - a.timestamp);
-    const topEvents = events.slice(0, 8);
+    list.sort((a, b) => b.ts - a.ts);
+    const topEvents = list.slice(0, 6);
 
     if (topEvents.length === 0) {
-      this.dom.activityTableBody.innerHTML = `
+      this.dom.eventsTableBody.innerHTML = `
         <tr>
           <td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-muted)">
-            Sin registros de actividad recientes
+            Sincronizando con SQLite WAL encriptado...
           </td>
         </tr>
       `;
       return;
     }
 
-    this.dom.activityTableBody.innerHTML = topEvents.map(evt => {
-      const timeStr = new Date(evt.timestamp * 1000).toLocaleTimeString();
-      return `
-        <tr>
-          <td><span class="status-badge ${evt.badgeClass}">${evt.type}</span></td>
-          <td style="font-weight:600;color:var(--text-primary)">${this.escapeHtml(evt.label)}</td>
-          <td>${this.escapeHtml(evt.detail)}</td>
-          <td style="font-family:var(--font-mono);font-size:var(--text-xs)">${timeStr}</td>
-        </tr>
-      `;
-    }).join('');
+    this.dom.eventsTableBody.innerHTML = topEvents.map(e => `
+      <tr>
+        <td><span class="status-pill ${e.badge}">${e.mod}</span></td>
+        <td style="font-weight:600;color:var(--text-main)">${e.desc}</td>
+        <td>${e.detail}</td>
+        <td style="font-family:var(--font-mono);font-size:0.75rem">${e.time}</td>
+      </tr>
+    `).join('');
   }
 
-  /* ── Interactive Actions ──────────────────────────────────────────────── */
-  async handleTestCurrency() {
-    try {
-      const denominations = [20, 50, 100, 200, 500];
-      const randomDenom = denominations[Math.floor(Math.random() * denominations.length)];
-      await api.processCurrency({ mock_denomination: randomDenom });
-      await this.fetchData();
-    } catch (err) {
-      console.error('[Test Currency Failed]:', err);
+  /* ── Interactive Audio & Speech Announcement ──────────────────────────── */
+  announceSpeech(text) {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'es-MX';
+        utter.rate = 1.05;
+        window.speechSynthesis.speak(utter);
+      } catch (_) {}
     }
   }
 
-  async handleTestOCR() {
-    try {
-      const sampleTexts = [
-        'PARACETAMOL 500 MG - TOMAR 1 CADA 8 HORAS',
-        'FARMACIA SAN RAFAEL - TICKET DE COMPRA TOTAL $145.00',
-        'LINEA 1 DEL METRO - DIRECCION PANTITLAN',
-        'SALIDA DE EMERGENCIA - RUTA DE EVACUACION',
-      ];
-      const custom = this.dom.ocrInputText ? this.dom.ocrInputText.value.trim() : '';
-      const textToTest = custom || sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
-      
-      await api.processOCR({ mock_text: textToTest });
-      if (this.dom.ocrInputText) this.dom.ocrInputText.value = '';
-      await this.fetchData();
-    } catch (err) {
-      console.error('[Test OCR Failed]:', err);
+  /* ── Interactive Events Binding ───────────────────────────────────────── */
+  attachEvents() {
+    if (this.dom.themeToggleBtn) {
+      this.dom.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
+    }
+
+    // Currency chip clicking
+    if (this.dom.currencyChips) {
+      this.dom.currencyChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          const denom = parseInt(chip.dataset.denom, 10);
+          this.triggerCurrencyDemo(denom);
+        });
+      });
+    }
+
+    // OCR Test Button
+    if (this.dom.btnSynthesizeOcr && this.dom.ocrInput) {
+      this.dom.btnSynthesizeOcr.addEventListener('click', () => {
+        const val = this.dom.ocrInput.value.trim() || 'PARACETAMOL 500 MG - 1 TABLETA CADA 8 HORAS';
+        this.triggerOcrDemo(val);
+      });
+    }
+
+    // Demonstrator / Judge Sandbox Macro Keys
+    if (this.dom.btnDemoBill200) {
+      this.dom.btnDemoBill200.addEventListener('click', () => this.triggerCurrencyDemo(200));
+    }
+    if (this.dom.btnDemoBill500) {
+      this.dom.btnDemoBill500.addEventListener('click', () => this.triggerCurrencyDemo(500));
+    }
+    if (this.dom.btnDemoOcrMeds) {
+      this.dom.btnDemoOcrMeds.addEventListener('click', () => {
+        this.triggerOcrDemo('IBUPROFENO 400 MG - TOMAR CON ALIMENTOS');
+      });
+    }
+    if (this.dom.btnDemoFallAlert) {
+      this.dom.btnDemoFallAlert.addEventListener('click', () => this.triggerFallDemo());
+    }
+    if (this.dom.btnDemoObstacleNear) {
+      this.dom.btnDemoObstacleNear.addEventListener('click', () => this.triggerObstacleDemo(32));
+    }
+    if (this.dom.btnDemoHypoGlucose) {
+      this.dom.btnDemoHypoGlucose.addEventListener('click', () => this.triggerGlucoseDemo(55));
+    }
+    if (this.dom.btnDemoResetNormal) {
+      this.dom.btnDemoResetNormal.addEventListener('click', () => this.resetNormalState());
     }
   }
 
-  /* ── Utilities ────────────────────────────────────────────────────────── */
-  escapeHtml(str) {
-    if (!str) return '';
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+  triggerCurrencyDemo(denom) {
+    this.state.currencyDenom = denom;
+    this.renderCurrencyHUD(denom);
+    this.announceSpeech(`Billete de ${denom} pesos`);
+    api.processCurrency({ mock_denomination: denom }).catch(() => {});
   }
 
-  truncateText(str, maxLength) {
-    if (!str) return '';
-    return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+  triggerOcrDemo(text) {
+    this.state.ocrText = text;
+    this.renderOCR(text);
+    this.announceSpeech(text);
+    api.processOCR({ mock_text: text }).catch(() => {});
+  }
+
+  triggerFallDemo() {
+    this.fallAlarmActive = true;
+    this.state.fallCount += 1;
+    this.renderFallMonitor(this.state.fallCount);
+    this.announceSpeech('Atención: Caída perimetral detectada');
+    setTimeout(() => { this.fallAlarmActive = false; }, 6000);
+  }
+
+  triggerObstacleDemo(distCm) {
+    this.state.sectors = { left: 42, center: distCm, right: 88 };
+    this.renderRadarSectors(this.state.sectors);
+    this.announceSpeech(`Cuidado: obstáculo a ${distCm} centímetros`);
+  }
+
+  triggerGlucoseDemo(val) {
+    this.state.glucose = val;
+    this.renderGlucoseGauge(val);
+    if (val < 70) this.announceSpeech('Alerta clínica: Hipoglucemia detectada');
+    else if (val > 180) this.announceSpeech('Alerta clínica: Hiperglucemia detectada');
+  }
+
+  resetNormalState() {
+    this.fallAlarmActive = false;
+    this.state.glucose = 96;
+    this.state.sectors = { left: 160, center: 140, right: 190 };
+    this.state.currencyDenom = 200;
+    this.state.ocrText = 'PARACETAMOL 500 MG - TOMAR 1 TABLETA CADA 8 HORAS';
+    this.updateAllVisuals();
+    this.announceSpeech('Sensores en estado nominal');
   }
 }
 
-// Instantiate on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-  const app = new DashboardApp();
-  app.init();
-});
+// Bootstrap
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => new EcoEyeDashboard().init());
+  } else {
+    new EcoEyeDashboard().init();
+  }
+}

@@ -1,136 +1,141 @@
 /**
- * EcoEye Design Tokens & Theming System
- * Calibrated dark and light palettes, typography scale, elevations, and physics curves.
+ * EcoEye Design Tokens & Modern Theme Engine
+ * Ultra-refined palettes for Obsidian Dark (Cyber-Medical) and Titanium Light (Clinical Precision).
  */
 
 :root,
 [data-theme="dark"] {
-  /* Color Palette — Dark Mode (Obsidian / Medical Emerald / Cyan Telemetry) */
-  --bg-app: #080c14;
-  --bg-primary: #0d1322;
-  --bg-surface: #111a2e;
-  --bg-surface-elevated: #1a2642;
-  --bg-surface-glass: rgba(17, 26, 46, 0.72);
-  --bg-surface-hover: rgba(255, 255, 255, 0.04);
-  
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-active: rgba(255, 255, 255, 0.18);
-  --border-glow: rgba(16, 185, 129, 0.4);
+  /* Surface Hierarchies — Deep Space & Obsidian */
+  --bg-app: #060911;
+  --bg-subtle: #0a0f1d;
+  --bg-surface: #0e1526;
+  --bg-surface-elevated: #141e36;
+  --bg-surface-card: rgba(14, 21, 38, 0.75);
+  --bg-surface-glass: rgba(10, 15, 29, 0.82);
+  --bg-surface-hover: rgba(255, 255, 255, 0.05);
 
-  /* Primary Brand & Accents */
+  /* Border Strokes */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-card: rgba(255, 255, 255, 0.12);
+  --border-accent: rgba(16, 185, 129, 0.35);
+  --border-active: rgba(255, 255, 255, 0.25);
+
+  /* Primary Brand — Bio-Emerald & Cyan Telemetry */
   --brand-primary: #10b981;
-  --brand-primary-hover: #059669;
-  --brand-primary-glow: rgba(16, 185, 129, 0.22);
-  
-  --accent-cyan: #06b6d4;
-  --accent-cyan-glow: rgba(6, 182, 212, 0.2);
-  
-  --accent-indigo: #6366f1;
-  --accent-indigo-glow: rgba(99, 102, 241, 0.2);
+  --brand-primary-light: #34d399;
+  --brand-primary-glow: rgba(16, 185, 129, 0.28);
+  --brand-cyan: #06b6d4;
+  --brand-cyan-glow: rgba(6, 182, 212, 0.28);
+  --brand-indigo: #6366f1;
 
   /* Clinical Status */
   --status-normal: #10b981;
-  --status-normal-bg: rgba(16, 185, 129, 0.12);
-  
-  --status-warning: #f59e0b;
-  --status-warning-bg: rgba(245, 158, 11, 0.12);
-  
-  --status-critical: #ef4444;
-  --status-critical-bg: rgba(239, 68, 68, 0.14);
-  
-  --status-info: #38bdf8;
-  --status-info-bg: rgba(56, 189, 248, 0.12);
+  --status-normal-bg: rgba(16, 185, 129, 0.15);
+  --status-normal-glow: 0 0 16px rgba(16, 185, 129, 0.4);
 
-  /* Typography */
-  --font-display: 'Outfit', 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --status-warning: #f59e0b;
+  --status-warning-bg: rgba(245, 158, 11, 0.15);
+  --status-warning-glow: 0 0 16px rgba(245, 158, 11, 0.4);
+
+  --status-critical: #ef4444;
+  --status-critical-bg: rgba(239, 68, 68, 0.18);
+  --status-critical-glow: 0 0 20px rgba(239, 68, 68, 0.5);
+
+  --status-info: #38bdf8;
+  --status-info-bg: rgba(56, 189, 248, 0.15);
+
+  /* Typography Scales */
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
-  
-  --text-primary: #f8fafc;
+
+  --text-main: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --text-inverse: #020617;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
-  --shadow-glow: 0 0 28px var(--brand-primary-glow);
-  --shadow-cyan-glow: 0 0 28px var(--accent-cyan-glow);
+  /* Radar & HUD Visuals */
+  --radar-bg: #04101e;
+  --radar-line: rgba(6, 182, 212, 0.25);
+  --radar-blip: #10b981;
+  --radar-blip-critical: #ef4444;
+  --hud-frame: rgba(6, 182, 212, 0.4);
+
+  /* Shadows & Elevations */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 32px var(--brand-primary-glow);
+  --shadow-cyan-glow: 0 0 32px var(--brand-cyan-glow);
+
+  /* Smooth Physics */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 160ms;
+  --duration-normal: 260ms;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
 }
 
 [data-theme="light"] {
-  /* Color Palette — Light Mode (Clean Slate / Clinical Pure / High Contrast) */
-  --bg-app: #f1f5f9;
-  --bg-primary: #ffffff;
+  /* Surface Hierarchies — Pure Titanium & Clinic Slate */
+  --bg-app: #f4f6fb;
+  --bg-subtle: #ffffff;
   --bg-surface: #ffffff;
   --bg-surface-elevated: #f8fafc;
-  --bg-surface-glass: rgba(255, 255, 255, 0.85);
+  --bg-surface-card: rgba(255, 255, 255, 0.9);
+  --bg-surface-glass: rgba(255, 255, 255, 0.88);
   --bg-surface-hover: rgba(0, 0, 0, 0.03);
-  
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-active: rgba(0, 0, 0, 0.18);
-  --border-glow: rgba(16, 185, 129, 0.35);
 
-  /* Primary Brand & Accents */
+  /* Border Strokes */
+  --border-subtle: rgba(0, 0, 0, 0.07);
+  --border-card: rgba(0, 0, 0, 0.1);
+  --border-accent: rgba(5, 150, 105, 0.35);
+  --border-active: rgba(0, 0, 0, 0.22);
+
+  /* Primary Brand — Deep Medical Emerald & Azure */
   --brand-primary: #059669;
-  --brand-primary-hover: #047857;
-  --brand-primary-glow: rgba(5, 150, 105, 0.15);
-  
-  --accent-cyan: #0284c7;
-  --accent-cyan-glow: rgba(2, 132, 199, 0.15);
-  
-  --accent-indigo: #4f46e5;
-  --accent-indigo-glow: rgba(79, 70, 229, 0.15);
+  --brand-primary-light: #10b981;
+  --brand-primary-glow: rgba(5, 150, 105, 0.18);
+  --brand-cyan: #0284c7;
+  --brand-cyan-glow: rgba(2, 132, 199, 0.18);
+  --brand-indigo: #4f46e5;
 
   /* Clinical Status */
   --status-normal: #059669;
   --status-normal-bg: rgba(5, 150, 105, 0.1);
-  
+  --status-normal-glow: 0 0 14px rgba(5, 150, 105, 0.25);
+
   --status-warning: #d97706;
   --status-warning-bg: rgba(217, 119, 6, 0.1);
-  
+  --status-warning-glow: 0 0 14px rgba(217, 119, 6, 0.25);
+
   --status-critical: #dc2626;
   --status-critical-bg: rgba(220, 38, 38, 0.1);
-  
+  --status-critical-glow: 0 0 16px rgba(220, 38, 38, 0.3);
+
   --status-info: #0284c7;
   --status-info-bg: rgba(2, 132, 199, 0.1);
 
-  /* Typography */
-  --text-primary: #0f172a;
+  /* Typography Scales */
+  --text-main: #0f172a;
   --text-secondary: #475569;
   --text-muted: #64748b;
   --text-inverse: #ffffff;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 0 20px rgba(5, 150, 105, 0.15);
-  --shadow-cyan-glow: 0 0 20px rgba(2, 132, 199, 0.15);
-}
+  /* Radar & HUD Visuals */
+  --radar-bg: #e6f0fa;
+  --radar-line: rgba(2, 132, 199, 0.3);
+  --radar-blip: #059669;
+  --radar-blip-critical: #dc2626;
+  --hud-frame: rgba(2, 132, 199, 0.45);
 
-:root {
-  /* Fluid Typography Scale */
-  --text-xs: clamp(0.72rem, 0.7rem + 0.15vw, 0.8rem);
-  --text-sm: clamp(0.82rem, 0.8rem + 0.2vw, 0.9rem);
-  --text-base: clamp(0.95rem, 0.92rem + 0.25vw, 1.05rem);
-  --text-lg: clamp(1.12rem, 1.08rem + 0.35vw, 1.25rem);
-  --text-xl: clamp(1.35rem, 1.25rem + 0.5vw, 1.55rem);
-  --text-2xl: clamp(1.65rem, 1.5rem + 0.8vw, 1.95rem);
-  --text-3xl: clamp(2.1rem, 1.85rem + 1.1vw, 2.55rem);
-
-  /* Radius */
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
-
-  /* Motion & Transitions */
-  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-fast: 150ms var(--ease-spring);
-  --transition-normal: 240ms var(--ease-spring);
-  --transition-smooth: 360ms var(--ease-spring);
+  /* Shadows & Elevations */
+  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.12);
+  --shadow-glow: 0 0 24px var(--brand-primary-glow);
+  --shadow-cyan-glow: 0 0 24px var(--brand-cyan-glow);
 }

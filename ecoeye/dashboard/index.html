@@ -4,47 +4,49 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EcoEye — Plataforma de Telemetria Biomedica y Vision Asistiva</title>
-  <meta name="description" content="Dashboard de monitoreo biomedico offline-first, deteccion de caidas WiFi CSI, lectura continua de glucosa y vision asistiva con edge computing.">
+  <meta name="description" content="Dashboard clinico y de vision asistiva en el borde para personas con discapacidad visual y adultos mayores.">
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
   
   <!-- Google Fonts: Outfit, Inter, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
   
   <!-- Design System & Stylesheets -->
-  <link rel="stylesheet" href="/css/tokens.css">
-  <link rel="stylesheet" href="/css/layout.css">
-  <link rel="stylesheet" href="/css/components.css">
-  <link rel="stylesheet" href="/css/animations.css">
+  <link rel="stylesheet" href="./css/tokens.css">
+  <link rel="stylesheet" href="./css/layout.css">
+  <link rel="stylesheet" href="./css/components.css">
+  <link rel="stylesheet" href="./css/animations.css">
 </head>
 <body>
 
   <!-- Top Sticky Navigation Bar -->
   <header class="app-header">
     <div class="brand-wrapper" title="EcoEye Edge Gateway">
-      <img id="brand-logo-img" class="brand-logo-img" src="/assets/branding/ecoeye-logo-full-dark.svg" alt="EcoEye Medical Sensing" />
+      <img id="brand-logo-img" class="brand-logo-img" src="./assets/branding/ecoeye-logo-full-dark.svg" alt="EcoEye Medical Sensing" />
     </div>
 
     <div class="header-controls">
-      <div id="node-status-badge" class="status-badge normal">
-        <span id="node-status-dot" class="badge-dot"></span>
-        <span id="node-status-text">CONECTANDO</span>
+      <div id="node-status-pill" class="status-pill normal">
+        <span class="status-dot animate-status-live"></span>
+        <span id="node-status-text">EDGE ACTIVO</span>
       </div>
 
-      <button id="btn-manual-refresh" class="btn-icon" title="Refrescar telemetria" aria-label="Refrescar">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 4 23 10 17 10"></polyline>
-          <polyline points="1 20 1 14 7 14"></polyline>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      <!-- Battery / Hardware Indicator -->
+      <div class="status-pill info" title="Nivel de Bateria Vestible">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="6" width="18" height="12" rx="2"></rect>
+          <line x1="23" y1="11" x2="23" y2="13"></line>
         </svg>
-      </button>
+        <span>98%</span>
+      </div>
 
-      <button id="theme-toggle-btn" class="btn-icon" title="Alternar tema claro/oscuro" aria-label="Alternar tema">
+      <!-- Theme Switcher -->
+      <button id="theme-toggle-btn" class="btn-icon-pill" title="Alternar tema claro/oscuro" aria-label="Alternar tema">
         <span id="theme-toggle-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
             <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -63,253 +65,336 @@
   <!-- Main Content Shell -->
   <main class="app-container">
 
-    <!-- Hero System Overview -->
-    <section class="system-hero fade-in-entry">
+    <!-- Hero Context Banner -->
+    <section class="system-hero animate-fade-in">
       <div class="hero-info">
-        <h1 class="hero-title">EcoEye Ambient Sensing Gateway</h1>
-        <p class="hero-subtitle">Telemetria clinica continua, proteccion perimetral y computo en el borde offline-first.</p>
+        <span class="hero-tag">Ecosistema Vestible Asistivo · HackaTec Regional</span>
+        <h1 class="hero-title">EcoEye Ambient Sensing & Assistive AI</h1>
+        <p class="hero-subtitle">
+          Plataforma de borde para personas con discapacidad visual y adultos mayores. Integra visión artificial para reconocimiento de efectivo y lectura OCR, radar háptico de proximidad, y detección perimetral de caídas WiFi CSI sin cámaras invasivas.
+        </p>
       </div>
 
       <div class="hero-metrics">
         <div class="metric-pill">
-          <span class="metric-pill-label">Dispositivo</span>
-          <span id="metric-device-id" class="metric-pill-value">ecoeye-edge-01</span>
+          <span class="metric-pill-label">Dispositivo Edge</span>
+          <span id="metric-device-id" class="metric-pill-value">ecoeye-edge-001</span>
         </div>
         <div class="metric-pill">
           <span class="metric-pill-label">Tiempo Activo</span>
-          <span id="metric-uptime" class="metric-pill-value">--</span>
+          <span id="metric-uptime" class="metric-pill-value">En linea</span>
         </div>
         <div class="metric-pill">
-          <span class="metric-pill-label">Cola Sincronizacion</span>
+          <span class="metric-pill-label">Cola Cifrada</span>
           <span id="metric-queue-pending" class="metric-pill-value">0</span>
         </div>
       </div>
     </section>
 
-    <!-- Telemetry Cards Grid -->
-    <section class="telemetry-grid">
+    <!-- Judge / Pitch Interactive Sandbox -->
+    <section class="demo-sandbox-bar">
+      <div class="sandbox-title-group">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <div>
+          <h2 class="sandbox-title">Consola de Demostracion en Vivo (1-Click Pitch Macros)</h2>
+          <span class="sandbox-subtitle">Simula eventos de hardware y comprueba la reaccion instantanea del ecosistema</span>
+        </div>
+      </div>
 
-      <!-- Card 1: Radar de Obstaculos -->
-      <article class="telemetry-card">
-        <div class="card-header">
-          <div class="card-title-group">
-            <div class="card-icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path>
-                <path d="M12 6a6 6 0 1 0 6 6 6 6 0 0 0-6-6zm0 10a4 4 0 1 1 4-4 4 4 0 0 1-4 4z"></path>
+      <div class="sandbox-buttons">
+        <button id="btn-demo-bill-200" class="btn-action btn-secondary-action">
+          Billete $200
+        </button>
+        <button id="btn-demo-bill-500" class="btn-action btn-secondary-action">
+          Billete $500
+        </button>
+        <button id="btn-demo-ocr-meds" class="btn-action btn-secondary-action">
+          Leer Receta Medica
+        </button>
+        <button id="btn-demo-obstacle-near" class="btn-action btn-secondary-action" style="color:var(--status-warning)">
+          Obstaculo 32 cm
+        </button>
+        <button id="btn-demo-fall-alert" class="btn-action btn-secondary-action" style="color:var(--status-critical)">
+          Simular Caida CSI
+        </button>
+        <button id="btn-demo-hypo-glucose" class="btn-action btn-secondary-action" style="color:var(--status-critical)">
+          Hipoglucemia 55
+        </button>
+        <button id="btn-demo-reset-normal" class="btn-action btn-primary-action">
+          Restablecer Nominal
+        </button>
+      </div>
+    </section>
+
+    <!-- Primary Bento Grid (Vision AI vs Radar) -->
+    <div class="bento-grid">
+
+      <!-- Column 1: Vision Artificial en Gafas Inteligentes -->
+      <article class="glass-card">
+        <div class="card-header-clean">
+          <div class="card-title-combo">
+            <div class="card-icon-pill">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Radar de Proximidad</h2>
-              <span class="card-subtitle">Sensores Ultrasonicos / ToF</span>
+              <h2 class="card-main-title">Vision Asistiva (Gafas Inteligentes HUD)</h2>
+              <span class="card-main-subtitle">Reconocimiento neuronal de efectivo y lectura OCR con sintesis de voz</span>
             </div>
           </div>
-          <span id="radar-status-badge" class="status-badge normal">DESPEJADO</span>
+          <span id="currency-status-pill" class="status-pill normal">CAMARA ACTIVA</span>
         </div>
 
-        <div class="metric-main-display">
-          <span id="radar-closest-dist" class="metric-big-number">--</span>
-          <span class="metric-unit">cm (mas cercano)</span>
+        <!-- HUD Visor Frame -->
+        <div class="hud-visor-frame">
+          <div class="hud-grid-overlay"></div>
+          <div class="hud-laser-line animate-hud-scanner"></div>
+
+          <!-- Brackets -->
+          <div class="hud-corner-bracket tl"></div>
+          <div class="hud-corner-bracket tr"></div>
+          <div class="hud-corner-bracket bl"></div>
+          <div class="hud-corner-bracket br"></div>
+
+          <!-- Target Box -->
+          <div class="hud-target-box animate-reticle">
+            <span id="hud-target-label" class="hud-target-label">Billete de 200 Pesos</span>
+            <span id="hud-target-val" class="hud-target-val">$200 MXN</span>
+          </div>
         </div>
 
-        <div class="radar-sectors">
-          <div id="sector-left" class="sector-box">
-            <span class="sector-label">Izquierda</span>
-            <span id="sector-left-dist" class="sector-distance">--</span>
+        <!-- Currency Selector Strip -->
+        <div style="margin-top: 1rem;">
+          <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">
+            Probar Denominacion de Moneda MXN:
+          </span>
+          <div class="currency-selector-strip">
+            <div class="currency-chip-btn" data-denom="20">
+              <span class="currency-chip-val">$20</span>
+              <span class="currency-chip-sub">Benito</span>
+            </div>
+            <div class="currency-chip-btn" data-denom="50">
+              <span class="currency-chip-val">$50</span>
+              <span class="currency-chip-sub">Morelos</span>
+            </div>
+            <div class="currency-chip-btn" data-denom="100">
+              <span class="currency-chip-val">$100</span>
+              <span class="currency-chip-sub">Sor Juana</span>
+            </div>
+            <div class="currency-chip-btn active" data-denom="200">
+              <span class="currency-chip-val">$200</span>
+              <span class="currency-chip-sub">Hidalgo</span>
+            </div>
+            <div class="currency-chip-btn" data-denom="500">
+              <span class="currency-chip-val">$500</span>
+              <span class="currency-chip-sub">Zaragoza</span>
+            </div>
           </div>
-          <div id="sector-center" class="sector-box">
-            <span class="sector-label">Centro</span>
-            <span id="sector-center-dist" class="sector-distance">--</span>
+        </div>
+
+        <!-- OCR Text Display -->
+        <div class="ocr-terminal-box">
+          <div class="ocr-terminal-header">
+            <span>Transcripcion OCR en Tiempo Real</span>
+            <span id="ocr-status-pill" class="status-pill info">SINTETIZADO</span>
           </div>
-          <div id="sector-right" class="sector-box">
-            <span class="sector-label">Derecha</span>
-            <span id="sector-right-dist" class="sector-distance">--</span>
+          <div id="ocr-text-display" class="ocr-terminal-text">
+            "PARACETAMOL 500 MG - TOMAR 1 TABLETA CADA 8 HORAS"
+          </div>
+          <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+            <input id="ocr-custom-input" type="text" placeholder="Escribir texto personalizado para probar locucion..." style="flex:1; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:0.5rem 0.75rem; color:var(--text-main); font-size:0.82rem; outline:none;" />
+            <button id="btn-synthesize-ocr" class="btn-action btn-secondary-action">
+              Sintetizar
+            </button>
           </div>
         </div>
       </article>
 
-      <!-- Card 2: Glucosa Continua BLE -->
-      <article class="telemetry-card">
-        <div class="card-header">
-          <div class="card-title-group">
-            <div class="card-icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Column 2: Radar de Navegacion Espacial -->
+      <article class="glass-card">
+        <div class="card-header-clean">
+          <div class="card-title-combo">
+            <div class="card-icon-pill" style="color:var(--brand-cyan)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="m4.93 4.93 4.24 4.24"></path>
+                <path d="m14.83 9.17 4.24-4.24"></path>
+                <path d="m14.83 14.83 4.24 4.24"></path>
+                <path d="m9.17 14.83-4.24 4.24"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-main-title">Radar de Navegacion Espacial</h2>
+              <span class="card-main-subtitle">Sonar perimetral 360° con alertas hapticas por sector</span>
+            </div>
+          </div>
+          <span id="radar-status-pill" class="status-pill normal">DESPEJADO</span>
+        </div>
+
+        <!-- Radar Circular Visualizer -->
+        <div class="radar-stage">
+          <div class="radar-circle">
+            <div class="radar-ring ring-1"></div>
+            <div class="radar-ring ring-2"></div>
+            <div class="radar-ring ring-3"></div>
+            <div class="radar-axis-h"></div>
+            <div class="radar-axis-v"></div>
+            <div class="radar-sweep-needle animate-radar-sweep"></div>
+
+            <!-- Interactive Obstacle Blips -->
+            <div id="radar-blip-left" class="radar-blip"></div>
+            <div id="radar-blip-center" class="radar-blip"></div>
+            <div id="radar-blip-right" class="radar-blip"></div>
+          </div>
+        </div>
+
+        <!-- Sector Cards -->
+        <div class="radar-sectors-grid">
+          <div id="sector-card-left" class="sector-card">
+            <div class="sector-card-name">Izquierda</div>
+            <div id="sector-dist-left" class="sector-card-dist">160 cm</div>
+          </div>
+          <div id="sector-card-center" class="sector-card">
+            <div class="sector-card-name">Centro / Frente</div>
+            <div id="sector-dist-center" class="sector-card-dist">140 cm</div>
+          </div>
+          <div id="sector-card-right" class="sector-card">
+            <div class="sector-card-name">Derecha</div>
+            <div id="sector-dist-right" class="sector-card-dist">190 cm</div>
+          </div>
+        </div>
+
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:1rem; text-align:center;">
+          Proximidad critica automática activada cuando cualquier sector detecta objetos a menos de 50 cm.
+        </p>
+      </article>
+
+    </div>
+
+    <!-- Secondary Dual Grid: Signos Vitales & WiFi CSI -->
+    <div class="dual-grid">
+
+      <!-- Biomédico 1: Glucómetro Continuo BLE GATT -->
+      <article class="glass-card">
+        <div class="card-header-clean">
+          <div class="card-title-combo">
+            <div class="card-icon-pill" style="color:var(--brand-primary)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Glucosa en Sangre</h2>
-              <span class="card-subtitle">Sensor Continuo BLE GATT</span>
+              <h2 class="card-main-title">Glucosa en Sangre (CGM BLE)</h2>
+              <span class="card-main-subtitle">Servicio estandar GATT 0x1808 con evaluacion clinica</span>
             </div>
           </div>
-          <span id="glucose-badge" class="status-badge normal">NORMAL</span>
+          <span id="glucose-status-pill" class="status-pill normal">EUGLUCEMIA</span>
         </div>
 
-        <div class="metric-main-display">
-          <span id="glucose-value" class="metric-big-number">--</span>
-          <span class="metric-unit">mg/dL</span>
-        </div>
+        <div class="gauge-container">
+          <!-- Radial Progress Gauge -->
+          <div class="radial-progress-box">
+            <svg class="radial-svg" viewBox="0 0 140 140">
+              <circle class="radial-bg-track" cx="70" cy="70" r="58"></circle>
+              <circle id="radial-bar-fill" class="radial-bar-fill" cx="70" cy="70" r="58"
+                stroke-dasharray="364.4" stroke-dashoffset="260"></circle>
+            </svg>
+            <div class="radial-center-text">
+              <span id="radial-glucose-val" class="radial-val">98</span>
+              <span class="radial-unit">mg/dL</span>
+            </div>
+          </div>
 
-        <div class="glucose-range-bar">
-          <div id="glucose-bar-fill" class="glucose-range-fill"></div>
+          <!-- Diagnóstico y Rangos -->
+          <div class="glucose-details">
+            <div class="glucose-stat-row">
+              <span class="glucose-stat-label">Diagnostico:</span>
+              <span id="glucose-diagnosis-text" class="glucose-stat-val" style="color:var(--brand-primary)">EUGLUCEMIA</span>
+            </div>
+            <div class="glucose-stat-row">
+              <span class="glucose-stat-label">Rango Objetivo:</span>
+              <span class="glucose-stat-val">70 - 140 mg/dL</span>
+            </div>
+            <div class="glucose-stat-row">
+              <span class="glucose-stat-label">Protocolo:</span>
+              <span class="glucose-stat-val">BLE GATT 0x2A18</span>
+            </div>
+          </div>
         </div>
-
-        <span id="glucose-timestamp" class="card-subtitle">Esperando lectura BLE...</span>
       </article>
 
-      <!-- Card 3: Monitor de Caidas WiFi CSI -->
-      <article class="telemetry-card">
-        <div class="card-header">
-          <div class="card-title-group">
-            <div class="card-icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Biomédico 2: Detección de Caídas WiFi CSI -->
+      <article class="glass-card">
+        <div class="card-header-clean">
+          <div class="card-title-combo">
+            <div class="card-icon-pill" style="color:var(--status-critical)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Proteccion de Caidas</h2>
-              <span class="card-subtitle">Analisis WiFi CSI + Doppler</span>
+              <h2 class="card-main-title">Monitor Doppler de Caidas (WiFi CSI)</h2>
+              <span class="card-main-subtitle">Analisis de perturbacion de radiofrecuencia sin camaras invasivas</span>
             </div>
           </div>
-          <span id="fall-badge" class="status-badge normal">NORMAL</span>
+          <span id="fall-status-pill" class="status-pill normal">NORMAL</span>
         </div>
 
-        <div class="metric-main-display">
-          <span id="fall-count" class="metric-big-number">0</span>
-          <span class="metric-unit">eventos registrados</span>
+        <!-- Doppler Waveform Oscilloscope Canvas -->
+        <div class="doppler-wave-frame">
+          <canvas id="doppler-canvas" class="doppler-canvas"></canvas>
         </div>
 
-        <span id="fall-last-event" class="card-subtitle">Sin incidentes recientes</span>
-      </article>
-
-      <!-- Card 4: Deteccion de Efectivo / Moneda -->
-      <article class="telemetry-card">
-        <div class="card-header">
-          <div class="card-title-group">
-            <div class="card-icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-                <circle cx="12" cy="12" r="2"></circle>
-                <path d="M6 12h.01M18 12h.01"></path>
-              </svg>
-            </div>
-            <div>
-              <h2 class="card-title">Deteccion de Moneda</h2>
-              <span class="card-subtitle">Billetes y Monedas MXN</span>
-            </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.85rem;">
+          <div>
+            <span style="font-size:0.75rem; color:var(--text-muted); display:block;">Incidentes Registrados:</span>
+            <span id="fall-count-display" style="font-family:var(--font-mono); font-size:1.4rem; font-weight:800;">0</span>
           </div>
-          <span id="currency-badge" class="status-badge info">EN ESPERA</span>
-        </div>
-
-        <div class="metric-main-display">
-          <span id="currency-value" class="metric-big-number">--</span>
-          <span class="metric-unit">denominacion</span>
-        </div>
-
-        <span class="card-subtitle">Confianza visual: <strong id="currency-confidence">0%</strong></span>
-      </article>
-
-    </section>
-
-    <!-- Interactive Testing & Smart Glasses Section -->
-    <section class="interactive-grid">
-
-      <!-- Module 1: OCR Smart Glasses -->
-      <article class="telemetry-card">
-        <div class="card-header">
-          <div class="card-title-group">
-            <div class="card-icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 7V4h16v3"></path>
-                <path d="M9 20h6"></path>
-                <path d="M12 4v16"></path>
-              </svg>
-            </div>
-            <div>
-              <h2 class="card-title">Lectura de Texto OCR (Gafas)</h2>
-              <span class="card-subtitle">Captura en campo visual y sintesis de voz</span>
-            </div>
+          <div style="text-align:right;">
+            <span style="font-size:0.75rem; color:var(--text-muted); display:block;">Metodo de Deteccion:</span>
+            <span style="font-size:0.82rem; font-weight:600; color:var(--text-main);">Filtro Hampel + Doppler</span>
           </div>
-          <span id="ocr-badge" class="status-badge info">EN ESPERA</span>
-        </div>
-
-        <div id="ocr-text" class="ocr-display-box">
-          Esperando captura de texto en campo visual...
-        </div>
-
-        <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
-          <input id="ocr-input-text" type="text" class="input-text" placeholder="Escribir texto para sintetizar prueba..." />
-          <button id="btn-test-ocr" class="btn btn-primary" style="white-space: nowrap;">
-            Sintetizar
-          </button>
         </div>
       </article>
 
-      <!-- Module 2: Edge Validation & Injections -->
-      <article class="telemetry-card">
-        <div class="card-header">
-          <div class="card-title-group">
-            <div class="card-icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-              </svg>
-            </div>
-            <div>
-              <h2 class="card-title">Inyeccion y Pruebas en Borde</h2>
-              <span class="card-subtitle">Simulacion de inferencias y persistencia WAL</span>
-            </div>
-          </div>
-          <span class="status-badge normal">ACTIVO</span>
+    </div>
+
+    <!-- Live Event Audit Feed -->
+    <section class="log-table-container">
+      <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h2 style="font-family:var(--font-display); font-size:1.1rem; font-weight:700;">Registro de Auditoria y Eventos en Borde</h2>
+          <span style="font-size:0.75rem; color:var(--text-muted);">Persistencia local SQLite WAL cifrada con AES-256-GCM y sincronizacion idempotente hacia Supabase</span>
         </div>
-
-        <p style="font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: 1rem;">
-          Ejecuta inferencias simuladas para verificar el flujo de persistencia cifrada AES-256 y encolamiento offline inmediato.
-        </p>
-
-        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-          <button id="btn-test-currency" class="btn btn-secondary">
-            Simular Deteccion de Billete
-          </button>
-        </div>
-      </article>
-
-    </section>
-
-    <!-- Activity Log Feed -->
-    <section class="logs-section">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <h2 style="font-family: var(--font-display); font-size: var(--text-lg); font-weight: 700;">
-          Registro de Actividad en Tiempo Real
-        </h2>
-        <span style="font-size: var(--text-xs); color: var(--text-muted);">
-          Actualizado cada 2.5s via SQLite WAL
-        </span>
+        <span class="status-pill normal">CIFRADO AES-256</span>
       </div>
 
-      <div class="log-table-wrapper">
-        <table class="log-table">
-          <thead>
-            <tr>
-              <th style="width: 120px;">Modulo</th>
-              <th style="width: 200px;">Evento</th>
-              <th>Detalle Clinico / Visual</th>
-              <th style="width: 140px;">Hora</th>
-            </tr>
-          </thead>
-          <tbody id="activity-table-body">
-            <tr>
-              <td colspan="4" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
-                Cargando registros...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <table class="modern-table">
+        <thead>
+          <tr>
+            <th style="width: 140px;">Modulo</th>
+            <th style="width: 260px;">Descripcion del Evento</th>
+            <th>Detalle Tecnico / Clinico</th>
+            <th style="width: 120px;">Hora</th>
+          </tr>
+        </thead>
+        <tbody id="events-table-body">
+          <tr>
+            <td colspan="4" style="text-align:center; padding:1.5rem; color:var(--text-muted)">
+              Sincronizando con SQLite WAL encriptado...
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
   </main>
 
   <!-- Application Bootstrap -->
-  <script type="module" src="/js/app.js"></script>
+  <script src="./js/app.js"></script>
 </body>
 </html>

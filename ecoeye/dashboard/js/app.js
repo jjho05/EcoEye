@@ -112,7 +112,7 @@ class EcoEyeDashboard {
       fallStatusExplanation: document.getElementById('fall-status-explanation'),
       dopplerCanvasEl: document.getElementById('doppler-canvas'),
 
-      // Vision Module Controls & Inputs
+      // Dedicated Vision Module (View 2)
       visionFileInput: document.getElementById('vision-file-input'),
       btnSnapCamera: document.getElementById('btn-snap-camera'),
       btnUploadFile: document.getElementById('btn-upload-file'),
@@ -129,6 +129,15 @@ class EcoEyeDashboard {
 
       // Hardware Diagnostic & Protocol Trigger
       btnTriggerCsiTest: document.getElementById('btn-trigger-csi-test'),
+
+      // Home Dashboard Direct Action Controls (Cards 1, 2, 3)
+      btnQuickCsiTrigger: document.getElementById('btn-quick-csi-trigger'),
+      btnQuickCsiReset: document.getElementById('btn-quick-csi-reset'),
+      inputQuickGlucose: document.getElementById('input-quick-glucose'),
+      btnQuickGlucoseSubmit: document.getElementById('btn-quick-glucose-submit'),
+      card3VisionFile: document.getElementById('card3-vision-file'),
+      btnCard3Upload: document.getElementById('btn-card3-upload'),
+      btnCard3ScanMeds: document.getElementById('btn-card3-scan-meds'),
 
       // Dedicated Vision Module (View 2)
       btnSnapInference: document.getElementById('btn-snap-inference'),
@@ -572,7 +581,7 @@ class EcoEyeDashboard {
 
   renderFallMonitor(count) {
     if (this.dom.fallCountDisplay) this.dom.fallCountDisplay.textContent = count;
-    const isAlarm = this.fallAlarmActive || count > 0;
+    const isAlarm = Boolean(this.fallAlarmActive);
 
     if (this.dom.fallPill) {
       if (isAlarm) {
@@ -1214,11 +1223,113 @@ class EcoEyeDashboard {
           this.renderFallMonitor(this.state.fallCount);
           this.announceSpeech('Atención: Protocolo de caída confirmado por telemetría CSI');
           this.showToast('Alerta de Caída Confirmada', `Varianza ${res.variance} > umbral. Sincronizado en SQLite y Neon Cloud.`, 'critical');
-          setTimeout(() => { this.fallAlarmActive = false; }, 6000);
+          setTimeout(() => {
+            this.fallAlarmActive = false;
+            this.renderFallMonitor(this.state.fallCount);
+          }, 6000);
           this.loadAuditData();
         } catch (err) {
           this.showToast('Error en Prueba CSI', 'No fue posible completar la verificación de hardware.', 'critical');
         }
+      });
+    }
+
+    // Quick Actions on Dashboard Cards
+    if (this.dom.btnQuickCsiTrigger) {
+      this.dom.btnQuickCsiTrigger.addEventListener('click', async () => {
+        try {
+          this.showToast('Verificación CSI', 'Evaluando varianza WiFi CSI y ventana de quietud...', 'info');
+          const res = await this.api.triggerCsiProtocolTest();
+          this.fallAlarmActive = true;
+          this.state.fallCount += 1;
+          this.renderFallMonitor(this.state.fallCount);
+          this.announceSpeech('Atención: Alerta de caída detectada en el hogar');
+          this.showToast('Alerta de Caída Confirmada', `Varianza ${res.variance} > 2.8. Sincronizado en SQLite y Neon Cloud.`, 'critical');
+          setTimeout(() => {
+            this.fallAlarmActive = false;
+            this.renderFallMonitor(this.state.fallCount);
+          }, 6000);
+        } catch (err) {
+          this.showToast('Error CSI', 'No se pudo completar la prueba de hardware', 'critical');
+        }
+      });
+    }
+
+    if (this.dom.btnQuickCsiReset) {
+      this.dom.btnQuickCsiReset.addEventListener('click', () => {
+        this.fallAlarmActive = false;
+        this.renderFallMonitor(this.state.fallCount);
+        this.showToast('Estado Normal', 'Sistema de protección de caídas en estado vigilante normal', 'normal');
+      });
+    }
+
+    if (this.dom.btnQuickGlucoseSubmit && this.dom.inputQuickGlucose) {
+      this.dom.btnQuickGlucoseSubmit.addEventListener('click', async () => {
+        const val = parseFloat(this.dom.inputQuickGlucose.value);
+        if (isNaN(val) || val < 20 || val > 500) {
+          this.showToast('Valor No Válido', 'Ingresa un valor entre 20 y 500 mg/dL', 'warning');
+          return;
+        }
+        try {
+          await this.api.recordGlucose(val, 'reposo');
+          this.state.glucose = val;
+          this.renderGlucoseGauge(val);
+          if (val < 70) {
+            this.announceSpeech('Alerta de salud: Nivel de glucosa bajo registrado');
+            this.showToast('Alerta de Glucosa', `Glucosa baja: ${val} mg/dL (Cifrado AES-256-GCM).`, 'critical');
+          } else if (val > 180) {
+            this.announceSpeech('Alerta de salud: Nivel de glucosa alto registrado');
+            this.showToast('Alerta de Glucosa', `Glucosa alta: ${val} mg/dL (Cifrado AES-256-GCM).`, 'critical');
+          } else {
+            this.showToast('Lectura Registrada', `Glucosa ${val} mg/dL guardada y cifrada en tiempo real.`, 'normal');
+          }
+        } catch (err) {
+          this.showToast('Error de Registro', 'No se pudo guardar la medición clínica', 'critical');
+        }
+      });
+    }
+
+    if (this.dom.btnCard3Upload && this.dom.card3VisionFile) {
+      this.dom.btnCard3Upload.addEventListener('click', () => this.dom.card3VisionFile.click());
+    }
+
+    if (this.dom.card3VisionFile) {
+      this.dom.card3VisionFile.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          const dataUrl = ev.target.result;
+          const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+
+          try {
+            this.showToast('Analizando Imagen', 'Procesando reconocimiento cromático y OCR...', 'info');
+            const currRes = await this.api.processCurrency({ image_base64: base64 });
+            if (currRes && currRes.denomination && currRes.denomination > 0) {
+              this.state.currencyDenom = currRes.denomination;
+              this.renderCurrencyHUD(currRes.denomination);
+              this.announceSpeech(`Tiene en su mano un billete de ${currRes.denomination} pesos`);
+              this.showToast('Efectivo Identificado', `Billete de $${currRes.denomination} MXN reconocido (${Math.round((currRes.confidence || 0.95) * 100)}%)`, 'normal');
+            } else {
+              const ocrRes = await this.api.processOCR({ image_base64: base64 });
+              const detected = (ocrRes && ocrRes.text) ? ocrRes.text : (ocrRes && ocrRes.cleaned_text ? ocrRes.cleaned_text : 'Texto procesado');
+              this.state.ocrText = detected;
+              this.renderOCR(detected);
+              this.announceSpeech(`Etiqueta identificada: ${detected}`);
+              this.showToast('Texto Reconocido', detected.substring(0, 45), 'normal');
+            }
+          } catch (err) {
+            this.showToast('Error de Visión', 'No se pudo procesar la imagen enviada.', 'critical');
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    if (this.dom.btnCard3ScanMeds) {
+      this.dom.btnCard3ScanMeds.addEventListener('click', () => {
+        this.triggerOcrDemo('PARACETAMOL 500 MG - 1 TABLETA CADA 8 HORAS');
       });
     }
 

@@ -3,9 +3,9 @@ Configuración centralizada del sistema EcoEye con validación estricta (Pydanti
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, model_validator
 
 
 
@@ -16,6 +16,17 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore"
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def sanitize_empty_env_strings(cls, data: Any) -> Any:
+        """Filter out empty string env vars so field defaults are preserved on cloud deployments."""
+        if isinstance(data, dict):
+            return {
+                k: v for k, v in data.items()
+                if not (isinstance(v, str) and v.strip() == "")
+            }
+        return data
 
     # Entorno
     env: str = Field(default="development", description="Entorno de ejecución (development, test, production)")

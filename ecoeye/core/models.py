@@ -91,9 +91,31 @@ class TelemetryType(str, Enum):
     GLUCOSE = "glucose"
     FALL = "fall"
     OBSTACLE = "obstacle"
+    CURRENCY = "currency"
+    OCR = "ocr"
     HEARTBEAT = "heartbeat"
     SYSTEM = "system"
     AUDIO = "audio"
+
+
+class CurrencyType(str, Enum):
+    """Classification of currency media."""
+    BANKNOTE = "banknote"
+    COIN = "coin"
+
+
+class CurrencyDenomination(str, Enum):
+    """Standard denominations supported by the vision system (MXN)."""
+    MXN_20 = "20"
+    MXN_50 = "50"
+    MXN_100 = "100"
+    MXN_200 = "200"
+    MXN_500 = "500"
+    MXN_1000 = "1000"
+    COIN_1 = "1"
+    COIN_2 = "2"
+    COIN_5 = "5"
+    COIN_10 = "10"
 
 
 # ================================================================
@@ -401,3 +423,48 @@ class RemoteTelemetryRecord(BaseModel):
     uptime_seconds: Optional[int] = Field(default=None)
     network_latency_ms: Optional[int] = Field(default=None)
     recorded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ================================================================
+# Assistive Vision Extensions: Currency & OCR Text Models
+# ================================================================
+
+class CurrencyDetection(BaseModel):
+    """
+    Detection and classification of cash currency (banknotes / coins).
+    Captures nominal value, currency code, bounding box, and TTS announcement status.
+    """
+    id: Optional[int] = None
+    device_id: str = Field(default="edge-node-01")
+    denomination: float = Field(..., gt=0.0, description="Nominal value of detected currency")
+    currency: str = Field(default="MXN", description="ISO 4217 currency code")
+    currency_type: CurrencyType = Field(default=CurrencyType.BANKNOTE)
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    label: str = Field(default="", description="Descriptive label e.g. 'Billete de 200 pesos'")
+    bbox: Optional[List[int]] = Field(default=None, description="[x, y, w, h] bounding box")
+    audio_announced: bool = Field(default=False)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @model_validator(mode="after")
+    def populate_label(self) -> CurrencyDetection:
+        if not self.label:
+            tipo = "Billete" if self.currency_type == CurrencyType.BANKNOTE else "Moneda"
+            self.label = f"{tipo} de {self.denomination:.0f} {self.currency}"
+        return self
+
+
+class OCRTextReading(BaseModel):
+    """
+    Text reading extracted from camera frame via Optical Character Recognition.
+    Includes raw and cleaned text, confidence, language, and bounding box.
+    """
+    id: Optional[int] = None
+    device_id: str = Field(default="edge-node-01")
+    raw_text: str = Field(..., description="Unfiltered raw text extracted by OCR engine")
+    cleaned_text: str = Field(..., description="Normalized and noise-filtered text for TTS")
+    confidence: float = Field(..., ge=0.0, le=100.0, description="Average OCR confidence percentage")
+    language: str = Field(default="spa", description="Detected or assumed language code")
+    bbox: Optional[List[int]] = Field(default=None, description="[x, y, w, h] text region bounding box")
+    audio_announced: bool = Field(default=False)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+

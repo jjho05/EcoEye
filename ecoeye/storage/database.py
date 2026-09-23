@@ -81,6 +81,42 @@ CREATE TABLE IF NOT EXISTS obstacle_detections (
 CREATE INDEX IF NOT EXISTS idx_obs_ts     ON obstacle_detections(timestamp);
 CREATE INDEX IF NOT EXISTS idx_obs_sector ON obstacle_detections(sector);
 
+-- Cash currency detections (banknotes / coins)
+CREATE TABLE IF NOT EXISTS currency_detections (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_uuid      TEXT NOT NULL UNIQUE,
+    timestamp        TEXT NOT NULL,
+    device_id        TEXT NOT NULL,
+    denomination     REAL NOT NULL,
+    currency         TEXT NOT NULL DEFAULT 'MXN',
+    currency_type    TEXT NOT NULL,
+    confidence       REAL NOT NULL,
+    label            TEXT NOT NULL,
+    bbox_json        TEXT,
+    audio_announced  INTEGER DEFAULT 0,
+    synced           INTEGER DEFAULT 0,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_curr_ts     ON currency_detections(timestamp);
+CREATE INDEX IF NOT EXISTS idx_curr_denom  ON currency_detections(denomination);
+
+-- OCR text readings from smart glasses
+CREATE TABLE IF NOT EXISTS ocr_readings (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_uuid      TEXT NOT NULL UNIQUE,
+    timestamp        TEXT NOT NULL,
+    device_id        TEXT NOT NULL,
+    raw_text         TEXT NOT NULL,
+    cleaned_text     TEXT NOT NULL,
+    confidence       REAL NOT NULL,
+    language         TEXT NOT NULL DEFAULT 'spa',
+    bbox_json        TEXT,
+    audio_announced  INTEGER DEFAULT 0,
+    synced           INTEGER DEFAULT 0,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_ocr_ts     ON ocr_readings(timestamp);
+
 -- Device heartbeat / health metrics
 CREATE TABLE IF NOT EXISTS heartbeats (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -35,16 +35,20 @@ logger = logging.getLogger("ecoeye.main")
 from ecoeye.config import settings
 from ecoeye.core.bus import EventBus
 from ecoeye.core.models import (
+    CurrencyDetection,
     FallEvent,
     GlucoseReading,
     GlucoseAlertLevel,
     ObstacleDetection,
+    OCRTextReading,
 )
 from ecoeye.storage.database import DatabaseManager
 from ecoeye.storage.repository import EcoEyeRepository
 from ecoeye.storage.sync_queue import SyncQueueManager
 from ecoeye.sensing.wifi_csi.detector import FallDetector
 from ecoeye.sensing.vision.detector import ObstacleDetector
+from ecoeye.sensing.vision.currency import CurrencyDetector
+from ecoeye.sensing.vision.ocr import OCRReader
 from ecoeye.sensing.glucose_ble.reader import GlucoseReader
 from ecoeye.sensing.voice.speaker import AudioSpeaker, AlertPriority
 from ecoeye.sync.supabase_worker import SupabaseWorker
@@ -104,6 +108,16 @@ class EcoEyeOrchestrator:
             on_obstacle=self._on_obstacle,
             simulation_mode=simulation_mode,
         )
+        self.currency_detector = CurrencyDetector(
+            device_id=settings.device_id,
+            on_detection=self._on_currency,
+            on_audio_alert=self._on_audio_alert,
+        )
+        self.ocr_reader = OCRReader(
+            device_id=settings.device_id,
+            on_reading=self._on_ocr,
+            on_audio_alert=self._on_audio_alert,
+        )
         self.glucose_reader = GlucoseReader(
             on_reading=self._on_glucose,
             simulation_mode=simulation_mode,
@@ -121,6 +135,34 @@ class EcoEyeOrchestrator:
         )
 
     # ── event handlers ────────────────────────────────────────────────────
+
+    def _on_audio_alert(self, message: str, priority: int = 2) -> None:
+        """Generic speech alert dispatcher with priority."""
+        self.speaker.speak(message, priority=priority)
+
+    def _on_currency(self, det: CurrencyDetection) -> None:
+        """Persist cash currency detection and broadcast event."""
+        try:
+            row_id = self.repo.save_currency_detection(det)
+            logger.debug("Currency detection persisted → row %d", row_id)
+        except Exception as exc:
+            logger.error("Failed to persist currency detection: %s", exc)
+
+        asyncio.get_event_loop().create_task(
+            self.bus.publish("currency_detected", det)
+        )
+
+    def _on_ocr(self, ocr: OCRTextReading) -> None:
+        """Persist OCR text reading and broadcast event."""
+        try:
+            row_id = self.repo.save_ocr_reading(ocr)
+            logger.debug("OCR reading persisted → row %d", row_id)
+        except Exception as exc:
+            logger.error("Failed to persist OCR reading: %s", exc)
+
+        asyncio.get_event_loop().create_task(
+            self.bus.publish("ocr_text_read", ocr)
+        )
 
     def _on_fall(self, event: FallEvent) -> None:
         """Persist fall event, enqueue for sync, emit audio alert."""
@@ -231,6 +273,18 @@ class EcoEyeOrchestrator:
                     name="vision-sim",
                 ),
                 asyncio.create_task(
+                    self.currency_detector.run_simulation(
+                        duration_sec=120.0, interval_sec=16.0
+                    ),
+                    name="currency-sim",
+                ),
+                asyncio.create_task(
+                    self.ocr_reader.run_simulation(
+                        duration_sec=120.0, interval_sec=18.0
+                    ),
+                    name="ocr-sim",
+                ),
+                asyncio.create_task(
                     self.glucose_reader.run_simulation(
                         duration_sec=120.0, fast_mode=True
                     ),
@@ -275,6 +329,8 @@ class EcoEyeOrchestrator:
         """External shutdown hook."""
         self.fall_detector.stop()
         self.vision_detector.stop()
+        self.currency_detector.stop()
+        self.ocr_reader.stop()
         self.glucose_reader.stop()
         self.supabase_worker.stop()
         self.speaker.stop(drain=False)

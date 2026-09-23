@@ -124,6 +124,87 @@ def create_app(
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    @app.get("/api/v1/detections/currency", tags=["Vision"])
+    async def recent_currency_detections(limit: int = 20) -> List[Dict[str, Any]]:
+        """Fetch the most recent cash currency detections (banknotes/coins)."""
+        try:
+            detections = _repo.get_recent_currency_detections(limit=limit)
+            return [d.model_dump(mode="json") for d in detections]
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.get("/api/v1/readings/ocr", tags=["Vision"])
+    async def recent_ocr_readings(limit: int = 20) -> List[Dict[str, Any]]:
+        """Fetch the most recent OCR text readings from smart glasses."""
+        try:
+            readings = _repo.get_recent_ocr_readings(limit=limit)
+            return [r.model_dump(mode="json") for r in readings]
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.post("/api/v1/vision/ocr/process", tags=["Vision"])
+    async def process_ocr(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process OCR from a base64 encoded image or raw text mock.
+        Payload format: {"image_base64": "..."} or {"mock_text": "..."}
+        """
+        try:
+            from ecoeye.sensing.vision.ocr import OCRReader
+            reader = OCRReader(device_id=settings.device_id)
+            if "mock_text" in payload:
+                reading = reader.synthesize_reading(raw_text=payload["mock_text"], cleaned_text=payload["mock_text"])
+                _repo.save_ocr_reading(reading)
+                return reading.model_dump(mode="json")
+            elif "image_base64" in payload:
+                import base64
+                from io import BytesIO
+                from PIL import Image
+                img_data = base64.b64decode(payload["image_base64"])
+                image = Image.open(BytesIO(img_data))
+                reading = reader.extract_text_from_frame(image)
+                if reading:
+                    _repo.save_ocr_reading(reading)
+                    return reading.model_dump(mode="json")
+                return {"status": "no_text_detected"}
+            else:
+                raise HTTPException(status_code=400, detail="Provide image_base64 or mock_text")
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.post("/api/v1/vision/currency/process", tags=["Vision"])
+    async def process_currency(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process currency detection from a base64 encoded image or denomination mock.
+        Payload format: {"image_base64": "..."} or {"mock_denomination": 200.0}
+        """
+        try:
+            from ecoeye.sensing.vision.currency import CurrencyDetector
+            detector = CurrencyDetector(device_id=settings.device_id)
+            if "mock_denomination" in payload:
+                denom = float(payload["mock_denomination"])
+                detection = detector.synthesize_detection(denomination=denom)
+                _repo.save_currency_detection(detection)
+                return detection.model_dump(mode="json")
+            elif "image_base64" in payload:
+                import base64
+                from io import BytesIO
+                from PIL import Image
+                img_data = base64.b64decode(payload["image_base64"])
+                image = Image.open(BytesIO(img_data))
+                detection = detector.classify_frame(image)
+                if detection:
+                    _repo.save_currency_detection(detection)
+                    return detection.model_dump(mode="json")
+                return {"status": "no_currency_detected"}
+            else:
+                raise HTTPException(status_code=400, detail="Provide image_base64 or mock_denomination")
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
     @app.get("/api/v1/queue", tags=["Sync"])
     async def queue_stats() -> Dict[str, int]:
         """Return sync queue item counts by status."""

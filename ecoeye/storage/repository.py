@@ -21,10 +21,13 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from ecoeye.core.models import (
+    CurrencyDetection,
+    CurrencyType,
     FallEvent,
     FallSeverity,
     FallStatus,
@@ -34,6 +37,7 @@ from ecoeye.core.models import (
     ObstacleDetection,
     ObstacleSector,
     ObstacleUrgency,
+    OCRTextReading,
 )
 from ecoeye.core.security import CryptoEngine, crypto_engine as _default_crypto
 from ecoeye.storage.database import DatabaseManager, db_manager
@@ -312,6 +316,174 @@ class EcoEyeRepository:
             return [dict(row) for row in cursor.fetchall()]
 
     # ------------------------------------------------------------------
+    # Currency Detections (Banknotes / Coins)
+    # ------------------------------------------------------------------
+
+    def save_currency_detection(self, det: CurrencyDetection) -> int:
+        """
+        Persist cash currency detection with atomic dual-write to sync_queue.
+        Returns the inserted rowid.
+        """
+        record_uuid = str(uuid.uuid4())
+        now_iso = det.timestamp.isoformat()
+        det_dict = det.model_dump(mode="json")
+        bbox_json = json.dumps(det.bbox) if det.bbox else None
+
+        sql_record = """
+        INSERT INTO currency_detections
+            (record_uuid, timestamp, device_id, denomination, currency, currency_type, confidence, label, bbox_json, audio_announced)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+        sql_queue = """
+        INSERT INTO sync_queue
+            (entity_type, entity_id, payload, priority, retry_count, status, next_attempt_at)
+        VALUES (?, ?, ?, 0, 0, 'pending', ?)
+        ON CONFLICT(entity_type, entity_id) DO NOTHING;
+        """
+
+        row_id: int = 0
+        with self.db.session() as conn:
+            cursor = conn.execute(
+                sql_record,
+                (
+                    record_uuid,
+                    now_iso,
+                    det.device_id,
+                    det.denomination,
+                    det.currency,
+                    det.currency_type.value,
+                    det.confidence,
+                    det.label,
+                    bbox_json,
+                    1 if det.audio_announced else 0,
+                ),
+            )
+            row_id = cursor.lastrowid or 0
+            conn.execute(
+                sql_queue,
+                ("currency", record_uuid, json.dumps(det_dict), now_iso),
+            )
+
+        logger.debug("Saved currency detection %s (%s) → row %d", record_uuid, det.label, row_id)
+        return row_id
+
+    def get_recent_currency_detections(self, limit: int = 50) -> List[CurrencyDetection]:
+        """Fetch latest currency detections."""
+        sql = """
+        SELECT id, record_uuid, timestamp, device_id, denomination, currency,
+               currency_type, confidence, label, bbox_json, audio_announced
+        FROM currency_detections
+        ORDER BY timestamp DESC
+        LIMIT ?;
+        """
+        with self.db.session() as conn:
+            cursor = conn.execute(sql, (limit,))
+            rows = cursor.fetchall()
+
+        results = []
+        for r in rows:
+            row_dict = dict(r)
+            bbox = json.loads(row_dict["bbox_json"]) if row_dict.get("bbox_json") else None
+            results.append(
+                CurrencyDetection(
+                    id=row_dict["id"],
+                    device_id=row_dict["device_id"],
+                    denomination=float(row_dict["denomination"]),
+                    currency=row_dict["currency"],
+                    currency_type=CurrencyType(row_dict["currency_type"]),
+                    confidence=float(row_dict["confidence"]),
+                    label=row_dict["label"],
+                    bbox=bbox,
+                    audio_announced=bool(row_dict["audio_announced"]),
+                    timestamp=datetime.fromisoformat(row_dict["timestamp"]),
+                )
+            )
+        return results
+
+    # ------------------------------------------------------------------
+    # OCR Text Readings
+    # ------------------------------------------------------------------
+
+    def save_ocr_reading(self, ocr: OCRTextReading) -> int:
+        """
+        Persist OCR text reading with atomic dual-write to sync_queue.
+        Returns the inserted rowid.
+        """
+        record_uuid = str(uuid.uuid4())
+        now_iso = ocr.timestamp.isoformat()
+        ocr_dict = ocr.model_dump(mode="json")
+        bbox_json = json.dumps(ocr.bbox) if ocr.bbox else None
+
+        sql_record = """
+        INSERT INTO ocr_readings
+            (record_uuid, timestamp, device_id, raw_text, cleaned_text, confidence, language, bbox_json, audio_announced)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+        sql_queue = """
+        INSERT INTO sync_queue
+            (entity_type, entity_id, payload, priority, retry_count, status, next_attempt_at)
+        VALUES (?, ?, ?, 0, 0, 'pending', ?)
+        ON CONFLICT(entity_type, entity_id) DO NOTHING;
+        """
+
+        row_id: int = 0
+        with self.db.session() as conn:
+            cursor = conn.execute(
+                sql_record,
+                (
+                    record_uuid,
+                    now_iso,
+                    ocr.device_id,
+                    ocr.raw_text,
+                    ocr.cleaned_text,
+                    ocr.confidence,
+                    ocr.language,
+                    bbox_json,
+                    1 if ocr.audio_announced else 0,
+                ),
+            )
+            row_id = cursor.lastrowid or 0
+            conn.execute(
+                sql_queue,
+                ("ocr", record_uuid, json.dumps(ocr_dict), now_iso),
+            )
+
+        logger.debug("Saved OCR text reading %s ('%s') → row %d", record_uuid, ocr.cleaned_text[:30], row_id)
+        return row_id
+
+    def get_recent_ocr_readings(self, limit: int = 50) -> List[OCRTextReading]:
+        """Fetch latest OCR text readings."""
+        sql = """
+        SELECT id, record_uuid, timestamp, device_id, raw_text, cleaned_text,
+               confidence, language, bbox_json, audio_announced
+        FROM ocr_readings
+        ORDER BY timestamp DESC
+        LIMIT ?;
+        """
+        with self.db.session() as conn:
+            cursor = conn.execute(sql, (limit,))
+            rows = cursor.fetchall()
+
+        results = []
+        for r in rows:
+            row_dict = dict(r)
+            bbox = json.loads(row_dict["bbox_json"]) if row_dict.get("bbox_json") else None
+            results.append(
+                OCRTextReading(
+                    id=row_dict["id"],
+                    device_id=row_dict["device_id"],
+                    raw_text=row_dict["raw_text"],
+                    cleaned_text=row_dict["cleaned_text"],
+                    confidence=float(row_dict["confidence"]),
+                    language=row_dict["language"],
+                    bbox=bbox,
+                    audio_announced=bool(row_dict["audio_announced"]),
+                    timestamp=datetime.fromisoformat(row_dict["timestamp"]),
+                )
+            )
+        return results
+
+    # ------------------------------------------------------------------
     # Heartbeats & System Health
     # ------------------------------------------------------------------
 
@@ -350,6 +522,8 @@ class EcoEyeRepository:
             g_count = conn.execute("SELECT COUNT(*) FROM glucose_readings;").fetchone()[0]
             f_count = conn.execute("SELECT COUNT(*) FROM fall_events;").fetchone()[0]
             o_count = conn.execute("SELECT COUNT(*) FROM obstacle_detections;").fetchone()[0]
+            c_count = conn.execute("SELECT COUNT(*) FROM currency_detections;").fetchone()[0]
+            ocr_count = conn.execute("SELECT COUNT(*) FROM ocr_readings;").fetchone()[0]
             sq_pending = conn.execute(
                 "SELECT COUNT(*) FROM sync_queue WHERE status = 'pending';"
             ).fetchone()[0]
@@ -364,6 +538,8 @@ class EcoEyeRepository:
             "glucose_readings_count": g_count,
             "fall_events_count": f_count,
             "obstacle_detections_count": o_count,
+            "currency_detections_count": c_count,
+            "ocr_readings_count": ocr_count,
             "sync_pending_count": sq_pending,
             "sync_synced_count": sq_synced,
             "last_heartbeat": dict(last_hb) if last_hb else None,

@@ -137,6 +137,43 @@ CREATE TABLE public.device_telemetry (
 CREATE INDEX idx_telemetry_time ON public.device_telemetry USING BRIN (recorded_at);
 
 -- ----------------------------------------------------------------
+-- 5b. Detección de Dinero en Efectivo (Billetes / Monedas)
+-- ----------------------------------------------------------------
+CREATE TABLE public.currency_detections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    device_id UUID REFERENCES public.devices(id) ON DELETE CASCADE,
+    denomination NUMERIC(8,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL DEFAULT 'MXN',
+    currency_type VARCHAR(16) NOT NULL DEFAULT 'banknote',
+    confidence NUMERIC(4,3) NOT NULL,
+    label TEXT NOT NULL,
+    bbox_json JSONB,
+    audio_announced BOOLEAN NOT NULL DEFAULT FALSE,
+    detected_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_currency_time ON public.currency_detections (detected_at DESC);
+CREATE INDEX idx_currency_denom ON public.currency_detections (denomination);
+
+-- ----------------------------------------------------------------
+-- 5c. Lecturas de Texto Óptico (OCR)
+-- ----------------------------------------------------------------
+CREATE TABLE public.ocr_readings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    device_id UUID REFERENCES public.devices(id) ON DELETE CASCADE,
+    raw_text TEXT NOT NULL,
+    cleaned_text TEXT NOT NULL,
+    confidence NUMERIC(5,2) NOT NULL,
+    language VARCHAR(8) NOT NULL DEFAULT 'spa',
+    bbox_json JSONB,
+    audio_announced BOOLEAN NOT NULL DEFAULT FALSE,
+    read_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_ocr_read_time ON public.ocr_readings (read_at DESC);
+CREATE INDEX idx_ocr_text_gin ON public.ocr_readings USING GIN (to_tsvector('spanish', cleaned_text));
+
+-- ----------------------------------------------------------------
 -- 6. Red de Cuidadores (Caregivers)
 -- ----------------------------------------------------------------
 CREATE TABLE public.caregivers (
@@ -199,6 +236,8 @@ ALTER TABLE public.devices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.device_telemetry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.caregivers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.currency_detections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ocr_readings ENABLE ROW LEVEL SECURITY;
 
 -- Profiles
 CREATE POLICY "perfil: leer propio o paciente asignado" ON public.profiles FOR SELECT USING (auth.uid() = id OR public.is_active_caregiver(id));
@@ -212,6 +251,14 @@ CREATE POLICY "dispositivos: cuidador consulta" ON public.devices FOR SELECT USI
 CREATE POLICY "alertas: nodos insertan (upsert)" ON public.alerts FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "alertas: leer propias o de paciente" ON public.alerts FOR SELECT USING (auth.uid() = user_id OR public.is_active_caregiver(user_id));
 CREATE POLICY "alertas: reconocer (update)" ON public.alerts FOR UPDATE USING (auth.uid() = user_id OR public.is_active_caregiver(user_id));
+
+-- Currency Detections
+CREATE POLICY "moneda: insertar desde nodo" ON public.currency_detections FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "moneda: lectura autorizada" ON public.currency_detections FOR SELECT USING (TRUE);
+
+-- OCR Readings
+CREATE POLICY "ocr: insertar desde nodo" ON public.ocr_readings FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "ocr: lectura autorizada" ON public.ocr_readings FOR SELECT USING (TRUE);
 
 -- Caregivers
 CREATE POLICY "cuidadores: dueño administra" ON public.caregivers FOR ALL USING (auth.uid() = patient_id);

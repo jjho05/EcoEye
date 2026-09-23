@@ -840,23 +840,67 @@ class EcoEyeDashboard {
         };
         this.renderQueueCounters();
       }
+      if (stats && stats.database) {
+        this.renderDatabaseStatus(stats.database);
+      }
     } catch (_) {}
+  }
+
+  renderDatabaseStatus(db) {
+    const badge = document.getElementById('neon-db-badge');
+    const versionEl = document.getElementById('neon-db-version');
+    const latencyEl = document.getElementById('neon-db-latency');
+    const alertsEl = document.getElementById('neon-db-alerts');
+    const telemetryEl = document.getElementById('neon-db-telemetry');
+
+    if (!db || !db.connected) {
+      if (badge) {
+        badge.textContent = 'Desconectado / Local Offline';
+        badge.style.background = 'rgba(239,68,68,0.12)';
+        badge.style.color = 'var(--status-critical)';
+        badge.style.border = '1px solid rgba(239,68,68,0.25)';
+      }
+      if (latencyEl) latencyEl.textContent = 'Sin conexion';
+      return;
+    }
+
+    if (badge) {
+      badge.textContent = 'Conectado · AWS us-east-2';
+      badge.style.background = 'rgba(16,185,129,0.12)';
+      badge.style.color = 'var(--status-normal)';
+      badge.style.border = '1px solid rgba(16,185,129,0.25)';
+    }
+    if (versionEl && db.version) versionEl.textContent = db.version;
+    if (latencyEl && db.latency_ms !== undefined) latencyEl.textContent = `${db.latency_ms} ms`;
+    if (alertsEl && db.tables && db.tables.alerts !== undefined) {
+      alertsEl.textContent = `${db.tables.alerts} registradas`;
+    }
+    if (telemetryEl && db.tables && db.tables.device_telemetry !== undefined) {
+      telemetryEl.textContent = `${db.tables.device_telemetry} nodos registrados`;
+    }
   }
 
   async flushSyncQueue() {
     try {
-      const res = await this.api.flushSyncQueue();
-      const count = res.synced_count || 0;
+      const res = await this.api.syncDatabase();
+      const count = res.synced || 0;
       this.showToast(
-        'Datos Sincronizados',
-        `Se han enviado los registros pendientes a la nube familiar`,
+        'Sincronizacion Exitosa',
+        `Se sincronizaron ${count} eventos con Neon PostgreSQL`,
         'normal'
       );
       this.loadAuditConsole();
     } catch (err) {
-      this.showToast('Fallo al Sincronizar', err.message || 'Error de conexion', 'critical');
+      try {
+        await this.api.flushSyncQueue();
+        this.showToast('Cola Local Vaciada', 'Registros procesados localmente', 'info');
+        this.loadAuditConsole();
+      } catch (innerErr) {
+        this.showToast('Fallo al Sincronizar', innerErr.message || 'Error de conexion', 'critical');
+      }
     }
   }
+
 
   /* ── Interactive Audio & Speech Announcement ──────────────────────────── */
   announceSpeech(text) {

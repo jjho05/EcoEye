@@ -3,8 +3,10 @@ Configuración centralizada del sistema EcoEye con validación estricta (Pydanti
 """
 
 from pathlib import Path
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import AliasChoices, Field
+
 
 
 class Settings(BaseSettings):
@@ -48,6 +50,14 @@ class Settings(BaseSettings):
 
     # Persistencia Local Offline-First
     db_path: str = Field(default="ecoeye_local.db", description="Ruta al archivo SQLite local")
+
+    # Persistencia Remota Cloud (PostgreSQL / Neon Serverless)
+    database_url: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("ECOEYE_DATABASE_URL", "DATABASE_URL"),
+        description="URI de conexión remota PostgreSQL / Neon (ECOEYE_DATABASE_URL o DATABASE_URL)"
+    )
+
 
     # Sensado WiFi CSI
     csi_sample_rate_hz: int = Field(default=100, description="Frecuencia de muestreo de paquetes CSI")

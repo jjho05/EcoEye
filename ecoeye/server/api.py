@@ -30,6 +30,7 @@ except ImportError:
 from ecoeye.config import settings
 from ecoeye.storage.repository import EcoEyeRepository, repository as _default_repo
 from ecoeye.storage.sync_queue import SyncQueueManager
+from ecoeye.storage.postgres import PostgresManager, postgres_manager as _default_pg
 from ecoeye.server.auth import auth_manager, LoginRequest, LoginResponse, UserProfile
 
 _START_TIME = time.time()
@@ -38,13 +39,17 @@ _START_TIME = time.time()
 def create_app(
     repo: Optional[EcoEyeRepository] = None,
     queue_mgr: Optional[SyncQueueManager] = None,
+    pg_mgr: Optional[PostgresManager] = None,
 ) -> "FastAPI":
+
     """Factory function to create and configure the FastAPI application."""
     if not _FASTAPI_AVAILABLE:
         raise ImportError("fastapi is required — install it with: pip install fastapi uvicorn")
 
     _repo = repo or _default_repo
     _queue = queue_mgr or SyncQueueManager()
+    _pg = pg_mgr if pg_mgr is not None else _default_pg
+
 
     app = FastAPI(
         title="EcoEye Edge API",
@@ -86,25 +91,45 @@ def create_app(
 
     @app.get("/health", tags=["System"])
     async def health() -> Dict[str, Any]:
-        """System health check with uptime."""
+        """System health check with uptime and cloud database connectivity."""
+        db_summary = {
+            "configured": _pg.is_configured(),
+            "connected": False,
+        }
+        if _pg.is_configured():
+            try:
+                db_health = _pg.check_connection()
+                db_summary["connected"] = db_health.get("connected", False)
+                db_summary["provider"] = db_health.get("provider")
+            except Exception:
+                pass
+
         return {
             "status": "healthy",
             "device_id": settings.device_id,
             "uptime_seconds": round(time.time() - _START_TIME, 1),
+            "cloud_database": db_summary,
             "version": "1.0.0",
         }
 
     @app.get("/api/v1/stats", tags=["Telemetry"])
     async def stats() -> Dict[str, Any]:
-        """Aggregated telemetry counts and sync queue status."""
+        """Aggregated telemetry counts, sync queue status, and cloud DB health."""
         try:
+            db_status = (
+                _pg.check_connection()
+                if _pg.is_configured()
+                else {"configured": False, "connected": False, "provider": "Neon Serverless PostgreSQL (No configurado)"}
+            )
             return {
                 "storage": _repo.get_system_stats(),
                 "sync_queue": _queue.get_queue_stats(),
+                "database": db_status,
                 "device_id": settings.device_id,
             }
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
+
 
     @app.get("/api/v1/alerts", tags=["Telemetry"])
     async def recent_alerts(limit: int = 20) -> List[Dict[str, Any]]:
@@ -334,7 +359,38 @@ def create_app(
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    # ── Remote PostgreSQL / Neon Endpoints ──────────────────────────────
+    @app.get("/api/v1/database/status", tags=["Database"])
+    async def database_status() -> Dict[str, Any]:
+        """Health check, provider metrics, and table statistics for remote PostgreSQL / Neon."""
+        return _pg.check_connection()
+
+    @app.post("/api/v1/database/sync", tags=["Database"])
+    async def database_sync(batch_size: int = 25) -> Dict[str, Any]:
+        """Synchronize pending local SQLite events directly to remote PostgreSQL / Neon."""
+        try:
+            return _pg.sync_pending_queue(queue_mgr=_queue, batch_size=batch_size)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.get("/api/v1/database/alerts", tags=["Database"])
+    async def database_remote_alerts(limit: int = 50) -> List[Dict[str, Any]]:
+        """Fetch real-time alerts stored in the remote PostgreSQL / Neon cloud database."""
+        try:
+            return _pg.get_recent_alerts(limit=limit)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.get("/api/v1/database/telemetry", tags=["Database"])
+    async def database_remote_telemetry(limit: int = 50) -> List[Dict[str, Any]]:
+        """Fetch hardware telemetry records stored in the remote PostgreSQL / Neon cloud database."""
+        try:
+            return _pg.get_recent_telemetry(limit=limit)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
     return app
+
 
 
 # Module-level app for direct uvicorn usage

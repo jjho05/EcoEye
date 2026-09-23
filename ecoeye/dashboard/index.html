@@ -692,7 +692,47 @@
           <span style="font-size:0.75rem; color:var(--status-normal);">Sin errores</span>
         </div>
       </div>
+
+      <!-- Remote Neon Serverless PostgreSQL Live Status Card -->
+      <div class="health-card" style="margin-top:1.5rem; padding:1.35rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:1.15rem;">
+          <div style="display:flex; align-items:center; gap:0.6rem;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <div>
+              <h3 style="font-size:1.05rem; font-weight:700; margin:0; color:var(--text-main);">Base de Datos Centralizada (Neon Serverless PostgreSQL)</h3>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Sincronizacion bidireccional Edge-to-Cloud con soporte de failover offline.</span>
+            </div>
+          </div>
+          <span id="neon-db-badge" style="font-size:0.75rem; font-weight:700; padding:0.3rem 0.75rem; border-radius:999px; background:rgba(16,185,129,0.12); color:var(--status-normal); border:1px solid rgba(16,185,129,0.25);">
+            Conectado · AWS us-east-2
+          </span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem;">
+          <div style="background:var(--bg-glass-heavy); padding:0.85rem; border-radius:10px; border:1px solid var(--border-subtle);">
+            <span style="color:var(--text-muted); display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase;">Motor / Servidor</span>
+            <strong id="neon-db-version" style="color:var(--text-main); font-size:1.05rem;">PostgreSQL 18.6</strong>
+          </div>
+          <div style="background:var(--bg-glass-heavy); padding:0.85rem; border-radius:10px; border:1px solid var(--border-subtle);">
+            <span style="color:var(--text-muted); display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase;">Latencia Cloud</span>
+            <strong id="neon-db-latency" style="color:var(--brand-primary); font-size:1.05rem;">~900 ms</strong>
+          </div>
+          <div style="background:var(--bg-glass-heavy); padding:0.85rem; border-radius:10px; border:1px solid var(--border-subtle);">
+            <span style="color:var(--text-muted); display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase;">Alertas en Nube</span>
+            <strong id="neon-db-alerts" style="color:var(--text-main); font-size:1.05rem;">2 registradas</strong>
+          </div>
+          <div style="background:var(--bg-glass-heavy); padding:0.85rem; border-radius:10px; border:1px solid var(--border-subtle);">
+            <span style="color:var(--text-muted); display:block; font-size:0.72rem; font-weight:600; text-transform:uppercase;">Telemetria en Nube</span>
+            <strong id="neon-db-telemetry" style="color:var(--text-main); font-size:1.05rem;">1 nodo registrado</strong>
+          </div>
+        </div>
+      </div>
     </section>
+
 
   </main>
 

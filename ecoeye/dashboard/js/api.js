@@ -155,7 +155,21 @@
     async exportMedicalReport() {
       return this._fetch('/api/v1/export/report');
     }
+
+    // ── Remote Database (Neon PostgreSQL) ───────────────────────────────────
+    async getDatabaseStatus() {
+      return this._fetch('/api/v1/database/status');
+    }
+
+    async syncDatabase(batchSize = 25) {
+      return this._fetch(`/api/v1/database/sync?batch_size=${batchSize}`, { method: 'POST' });
+    }
+
+    async getDatabaseAlerts(limit = 50) {
+      return this._fetch(`/api/v1/database/alerts?limit=${limit}`);
+    }
   }
+
 
   const apiInstance = new EcoEyeAPI();
   global.EcoEyeAPI = EcoEyeAPI;

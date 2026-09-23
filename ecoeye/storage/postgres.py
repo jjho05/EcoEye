@@ -335,8 +335,75 @@ class PostgresManager:
                     rows = cur.fetchall()
                     return [dict(r) for r in rows]
         except Exception as exc:
-            logger.error("Error consultando telemetría de PostgreSQL: %s", exc)
+            logger.error("Error consultando telemetria de PostgreSQL: %s", exc)
             return []
+
+    def get_caregivers(self) -> List[Dict[str, Any]]:
+        """Obtiene contactos de cuidadores registrados en Neon."""
+        if not self.is_configured():
+            return []
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(
+                        """
+                        SELECT id, full_name, phone_e164, relationship, is_primary, notify_whatsapp, created_at
+                        FROM public.caregivers
+                        ORDER BY is_primary DESC, created_at ASC;
+                        """
+                    )
+                    rows = cur.fetchall()
+                    return [dict(r) for r in rows]
+        except Exception as exc:
+            logger.error("Error consultando cuidadores de PostgreSQL: %s", exc)
+            return []
+
+    def insert_caregiver(
+        self,
+        full_name: str,
+        phone_e164: str,
+        relationship: str = "Familiar",
+        is_primary: bool = True,
+        notify_whatsapp: bool = True,
+    ) -> Optional[Dict[str, Any]]:
+        """Inserta un cuidador en Neon."""
+        if not self.is_configured():
+            return None
+        cg_id = str(uuid.uuid4())
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        INSERT INTO public.caregivers (
+                            id, user_id, full_name, phone_e164, relationship,
+                            is_primary, notify_whatsapp, created_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                        RETURNING id, full_name, phone_e164, relationship, is_primary, notify_whatsapp;
+                        """,
+                        (
+                            cg_id,
+                            self._default_user_uuid,
+                            full_name.strip(),
+                            phone_e164.strip(),
+                            relationship.strip(),
+                            is_primary,
+                            notify_whatsapp,
+                        )
+                    )
+                    row = cur.fetchone()
+                    return {
+                        "id": str(row[0]),
+                        "full_name": row[1],
+                        "phone_e164": row[2],
+                        "relationship": row[3],
+                        "is_primary": row[4],
+                        "notify_whatsapp": row[5],
+                    }
+        except Exception as exc:
+            logger.error("Error insertando cuidador en PostgreSQL: %s", exc)
+            return None
 
     def sync_pending_queue(self, queue_mgr: Any = None, batch_size: int = 25) -> Dict[str, int]:
         """

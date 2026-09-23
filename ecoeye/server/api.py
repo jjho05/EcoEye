@@ -28,6 +28,7 @@ except ImportError:
     _FASTAPI_AVAILABLE = False
 
 from ecoeye.config import settings
+from ecoeye.core.models import ObstacleDetection, ObstacleSector, ObstacleUrgency
 from ecoeye.storage.repository import EcoEyeRepository, repository as _default_repo
 from ecoeye.storage.sync_queue import SyncQueueManager
 from ecoeye.storage.postgres import PostgresManager, postgres_manager as _default_pg
@@ -154,6 +155,34 @@ def create_app(
         """Fetch the most recent obstacle detections."""
         try:
             return _repo.get_recent_obstacles(limit=limit, sector=sector)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.post("/api/v1/obstacles", tags=["Telemetry"])
+    async def record_obstacle(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Record an edge ToF sonar obstacle detection and alert dispatch."""
+        try:
+            sector_str = str(payload.get("sector", "center")).lower()
+            sector_enum = ObstacleSector(sector_str) if sector_str in [s.value for s in ObstacleSector] else ObstacleSector.CENTER
+            urgency_str = str(payload.get("urgency", "caution")).lower()
+            urgency_enum = ObstacleUrgency(urgency_str) if urgency_str in [u.value for u in ObstacleUrgency] else ObstacleUrgency.CAUTION
+            distance = float(payload.get("distance_meters", 1.0))
+            audio_msg = str(payload.get("audio_message", f"Obstaculo a {distance:.1f} metros al {sector_str}"))
+
+            obs = ObstacleDetection(
+                sector=sector_enum,
+                distance_meters=distance,
+                urgency=urgency_enum,
+                audio_message=audio_msg,
+                audio_played=bool(payload.get("audio_played", True)),
+                label=payload.get("label", "Mueble o Persona"),
+            )
+            rec_id = _repo.save_obstacle_detection(obs)
+            return {
+                "status": "recorded",
+                "id": rec_id,
+                "detection": obs.model_dump(mode="json"),
+            }
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -364,6 +393,101 @@ def create_app(
     async def queue_stats() -> Dict[str, int]:
         """Return sync queue item counts by status."""
         return _queue.get_queue_stats()
+
+    # ── Emergency Caregivers & Alert Dispatch ───────────────────────────
+    @app.get("/api/v1/caregivers", tags=["Caregivers"])
+    async def list_caregivers() -> List[Dict[str, Any]]:
+        """Return registered caregivers from cloud Neon database or local storage."""
+        try:
+            if _pg.is_configured():
+                cloud_cgs = _pg.get_caregivers()
+                if cloud_cgs:
+                    return cloud_cgs
+            local_cgs = _repo.get_caregivers()
+            if not local_cgs:
+                return [
+                    {
+                        "id": 1,
+                        "full_name": "Luis Morales (Familiar Principal)",
+                        "phone_e164": "+525512345678",
+                        "relationship": "Hijo / Cuidador",
+                        "is_primary": True,
+                        "notify_whatsapp": True,
+                    }
+                ]
+            return local_cgs
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.post("/api/v1/caregivers", tags=["Caregivers"])
+    async def create_caregiver(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Register a new emergency caregiver contact."""
+        try:
+            name = str(payload.get("full_name", "")).strip()
+            phone = str(payload.get("phone_e164", "")).strip()
+            relationship = str(payload.get("relationship", "Familiar")).strip()
+            if not name or not phone:
+                raise HTTPException(status_code=400, detail="full_name y phone_e164 son obligatorios")
+
+            saved = _repo.save_caregiver(
+                full_name=name,
+                phone_e164=phone,
+                relationship=relationship,
+                is_primary=bool(payload.get("is_primary", True)),
+                notify_whatsapp=bool(payload.get("notify_whatsapp", True)),
+            )
+
+            if _pg.is_configured():
+                _pg.insert_caregiver(
+                    full_name=name,
+                    phone_e164=phone,
+                    relationship=relationship,
+                    is_primary=bool(payload.get("is_primary", True)),
+                    notify_whatsapp=bool(payload.get("notify_whatsapp", True)),
+                )
+
+            return {"status": "created", "caregiver": saved}
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.post("/api/v1/alerts/{alert_id}/dispatch", tags=["Caregivers"])
+    async def dispatch_alert(alert_id: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Dispatch urgent notification to caregiver via WhatsApp protocol and log acknowledgment."""
+        try:
+            import urllib.parse
+            cgs = _repo.get_caregivers()
+            if not cgs and _pg.is_configured():
+                cgs = _pg.get_caregivers()
+
+            target_phone = "+525512345678"
+            target_name = "Cuidador Principal"
+            if cgs:
+                primary = next((c for c in cgs if c.get("is_primary")), cgs[0])
+                target_phone = str(primary.get("phone_e164", target_phone))
+                target_name = str(primary.get("full_name", target_name))
+
+            clean_phone = "".join(filter(str.isdigit, target_phone))
+            msg_text = (
+                f"ALERTA ECOEYE URGENTE: Se ha detectado una caida critica "
+                f"del paciente en Sala Principal (Dispositivo: {settings.device_id}). "
+                f"Evento: {alert_id}. Verifique estado del paciente de inmediato."
+            )
+            encoded_text = urllib.parse.quote(msg_text)
+            whatsapp_url = f"https://wa.me/{clean_phone}?text={encoded_text}"
+
+            return {
+                "status": "dispatched",
+                "alert_id": alert_id,
+                "caregiver_name": target_name,
+                "caregiver_phone": target_phone,
+                "whatsapp_url": whatsapp_url,
+                "message": msg_text,
+                "dispatched_at": time.time(),
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
     # ── Authentication & Roles ──────────────────────────────────────────

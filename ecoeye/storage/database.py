@@ -161,6 +161,19 @@ CREATE TABLE IF NOT EXISTS sync_queue (
 );
 CREATE INDEX IF NOT EXISTS idx_sq_status ON sync_queue(status, next_attempt_at);
 CREATE INDEX IF NOT EXISTS idx_sq_priority ON sync_queue(priority DESC, id ASC);
+
+-- Emergency caregivers and family contacts
+CREATE TABLE IF NOT EXISTS caregivers (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_uuid      TEXT NOT NULL UNIQUE,
+    full_name        TEXT NOT NULL,
+    phone_e164       TEXT NOT NULL,
+    relationship     TEXT NOT NULL DEFAULT 'Familiar',
+    is_primary       INTEGER DEFAULT 1,
+    notify_whatsapp  INTEGER DEFAULT 1,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_cg_phone ON caregivers(phone_e164);
 """
 
 

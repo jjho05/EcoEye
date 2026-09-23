@@ -188,6 +188,20 @@
             </button>
           </div>
 
+          <!-- Emergency WhatsApp Dispatch Box (Visible during Fall Alarm) -->
+          <div id="container-fall-whatsapp" style="display:none; margin-top:0.75rem; padding:0.6rem 0.8rem; background:rgba(22,163,74,0.12); border:1px solid rgba(22,163,74,0.3); border-radius:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+              <div>
+                <span style="font-size:0.72rem; font-weight:700; color:#16a34a; text-transform:uppercase; display:block;">Protocolo de Despacho Activo</span>
+                <span id="caregiver-alert-summary" style="font-size:0.8rem; color:var(--text-main);">Avisar a Cuidador Principal (+52 55 1234 5678)</span>
+              </div>
+              <a id="btn-dispatch-whatsapp" href="#" target="_blank" class="btn-whatsapp-dispatch" rel="noopener noreferrer">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                <span>Avisar por WhatsApp</span>
+              </a>
+            </div>
+          </div>
+
           <div style="margin-top:auto; padding-top:1rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
             <span style="font-size:0.75rem; color:var(--text-muted)">Privacidad: 100% garantizada (Sin grabacion de video)</span>
             <span style="font-size:0.75rem; font-weight:600; color:var(--brand-primary)">Monitoreo Activo</span>
@@ -284,9 +298,38 @@
             </div>
           </div>
 
+          <!-- Live Camera Viewport on Card 3 -->
+          <div id="card3-camera-viewport" style="display:none; position:relative; margin-top:0.75rem; border-radius:10px; overflow:hidden; border:2px solid var(--brand-cyan, #06b6d4); background:#020617;">
+            <video id="card3-video-element" autoplay playsinline muted style="width:100%; max-height:200px; object-fit:cover; display:block;"></video>
+            <canvas id="card3-canvas" style="display:none;"></canvas>
+            <div class="camera-hud-overlay">
+              <div class="hud-corner top-left"></div>
+              <div class="hud-corner top-right"></div>
+              <div class="hud-corner bottom-left"></div>
+              <div class="hud-corner bottom-right"></div>
+              <div class="hud-scan-line"></div>
+              <span class="hud-live-tag">GAFAS ECOEYE · VIDEO EN VIVO</span>
+            </div>
+            <div style="padding:0.45rem; background:rgba(15,23,42,0.92); display:flex; gap:0.4rem; justify-content:center; flex-wrap:wrap;">
+              <button id="btn-card3-cam-currency" class="btn-action btn-primary-action" style="font-size:0.75rem; padding:0.3rem 0.6rem;">
+                Identificar Billete
+              </button>
+              <button id="btn-card3-cam-ocr" class="btn-action btn-secondary-action" style="font-size:0.75rem; padding:0.3rem 0.6rem;">
+                Leer Medicamento
+              </button>
+              <button id="btn-card3-cam-close" class="btn-action" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3); font-size:0.75rem; padding:0.3rem 0.5rem;">
+                Cerrar
+              </button>
+            </div>
+          </div>
+
           <!-- Quick Image Upload on Card 3 -->
           <input type="file" id="card3-vision-file" accept="image/*" style="display:none;" />
           <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+            <button id="btn-card3-live-cam" class="btn-action" style="min-height:34px; padding:0.3rem 0.75rem; font-size:0.8rem; border-radius:6px; background:rgba(6,182,212,0.15); color:#06b6d4; border:1px solid rgba(6,182,212,0.35);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+              Camara en Vivo
+            </button>
             <button id="btn-card3-upload" class="btn-action btn-primary-action" style="min-height:34px; padding:0.3rem 0.75rem; font-size:0.8rem; border-radius:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
               Cargar Imagen Real
@@ -366,6 +409,27 @@
               <span class="lane-title">A la Derecha</span>
               <span id="sector-dist-right" class="lane-distance">1.9 m</span>
               <span class="lane-status-text">Despejado</span>
+            </div>
+          </div>
+
+          <!-- Interactive Sonar Test Scenarios -->
+          <div style="margin-top:0.75rem;">
+            <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:0.35rem;">
+              Pruebas de Proximidad ToF (Sonar):
+            </span>
+            <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+              <button id="btn-obs-front" class="btn-action" style="font-size:0.72rem; padding:0.3rem 0.55rem; border-radius:6px; background:var(--bg-subtle); color:var(--text-main); border:1px solid var(--border-subtle); cursor:pointer;">
+                Frente (0.4m)
+              </button>
+              <button id="btn-obs-left" class="btn-action" style="font-size:0.72rem; padding:0.3rem 0.55rem; border-radius:6px; background:var(--bg-subtle); color:var(--text-main); border:1px solid var(--border-subtle); cursor:pointer;">
+                Izquierda (0.35m)
+              </button>
+              <button id="btn-obs-right" class="btn-action" style="font-size:0.72rem; padding:0.3rem 0.55rem; border-radius:6px; background:var(--bg-subtle); color:var(--text-main); border:1px solid var(--border-subtle); cursor:pointer;">
+                Derecha (0.45m)
+              </button>
+              <button id="btn-obs-clear" class="btn-action" style="font-size:0.72rem; padding:0.3rem 0.55rem; border-radius:6px; background:rgba(34,197,94,0.1); color:#22c55e; border:1px solid rgba(34,197,94,0.3); cursor:pointer;">
+                Despejado (1.8m)
+              </button>
             </div>
           </div>
 
@@ -480,6 +544,31 @@
                   <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
                 <span>Cargar Imagen</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Camera Viewport on View 2 -->
+          <div id="vision-camera-viewport" style="display:none; position:relative; margin:1rem 0; border-radius:12px; overflow:hidden; border:2px solid var(--brand-cyan, #06b6d4); background:#020617; max-width:600px; margin-left:auto; margin-right:auto;">
+            <video id="vision-video-element" autoplay playsinline muted style="width:100%; max-height:280px; object-fit:cover; display:block;"></video>
+            <canvas id="vision-canvas" style="display:none;"></canvas>
+            <div class="camera-hud-overlay">
+              <div class="hud-corner top-left"></div>
+              <div class="hud-corner top-right"></div>
+              <div class="hud-corner bottom-left"></div>
+              <div class="hud-corner bottom-right"></div>
+              <div class="hud-scan-line"></div>
+              <span class="hud-live-tag">GAFAS ECOEYE · VIDEO EN VIVO</span>
+            </div>
+            <div style="padding:0.65rem; background:rgba(15,23,42,0.95); display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;">
+              <button id="btn-vision-cam-currency" class="btn-action btn-primary-action">
+                Escanear Billete
+              </button>
+              <button id="btn-vision-cam-ocr" class="btn-action btn-secondary-action">
+                Leer Texto / Farmaco
+              </button>
+              <button id="btn-vision-cam-close" class="btn-action" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3);">
+                Cerrar Camara
               </button>
             </div>
           </div>

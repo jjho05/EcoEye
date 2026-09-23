@@ -545,6 +545,53 @@ class EcoEyeRepository:
             "last_heartbeat": dict(last_hb) if last_hb else None,
         }
 
+    def get_caregivers(self) -> List[Dict[str, Any]]:
+        """Return all registered emergency caregivers."""
+        sql = "SELECT * FROM caregivers ORDER BY is_primary DESC, id ASC;"
+        try:
+            with self.db.session() as conn:
+                cursor = conn.execute(sql)
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception:
+            return []
+
+    def save_caregiver(
+        self,
+        full_name: str,
+        phone_e164: str,
+        relationship: str = "Familiar",
+        is_primary: bool = True,
+        notify_whatsapp: bool = True,
+    ) -> Dict[str, Any]:
+        """Insert or update a caregiver contact."""
+        rec_uuid = str(uuid.uuid4())
+        sql = """
+        INSERT INTO caregivers
+            (record_uuid, full_name, phone_e164, relationship, is_primary, notify_whatsapp)
+        VALUES (?, ?, ?, ?, ?, ?);
+        """
+        with self.db.session() as conn:
+            cursor = conn.execute(
+                sql,
+                (
+                    rec_uuid,
+                    full_name.strip(),
+                    phone_e164.strip(),
+                    relationship.strip(),
+                    1 if is_primary else 0,
+                    1 if notify_whatsapp else 0,
+                ),
+            )
+            return {
+                "id": cursor.lastrowid or 0,
+                "record_uuid": rec_uuid,
+                "full_name": full_name,
+                "phone_e164": phone_e164,
+                "relationship": relationship,
+                "is_primary": is_primary,
+                "notify_whatsapp": notify_whatsapp,
+            }
+
 
 # Backward-compatible alias — old code importing StorageRepository still works
 StorageRepository = EcoEyeRepository

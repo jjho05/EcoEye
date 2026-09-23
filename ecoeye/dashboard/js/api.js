@@ -191,6 +191,31 @@
     async getDatabaseAlerts(limit = 50) {
       return this._fetch(`/api/v1/database/alerts?limit=${limit}`);
     }
+
+    // ── Caregivers & Obstacles ──────────────────────────────────────────────
+    async getCaregivers() {
+      return this._fetch('/api/v1/caregivers');
+    }
+
+    async createCaregiver(caregiverData) {
+      return this._fetch('/api/v1/caregivers', {
+        method: 'POST',
+        body: JSON.stringify(caregiverData),
+      });
+    }
+
+    async dispatchAlert(alertId) {
+      return this._fetch(`/api/v1/alerts/${alertId}/dispatch`, {
+        method: 'POST',
+      });
+    }
+
+    async recordObstacle(obstacleData) {
+      return this._fetch('/api/v1/obstacles', {
+        method: 'POST',
+        body: JSON.stringify(obstacleData),
+      });
+    }
   }
 
 

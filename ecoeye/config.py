@@ -70,6 +70,22 @@ class Settings(BaseSettings):
         description="URI de conexión remota PostgreSQL / Neon (ECOEYE_DATABASE_URL o DATABASE_URL)"
     )
 
+    # Inteligencia Artificial Multimodal (Google Gemini)
+    gemini_api_key: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "ECOEYE_GEMINI_API_KEY",
+            "GEMINI_API_KEY",
+            "GOOGLE_API_KEY",
+            "GEMINI_KEY"
+        ),
+        description="API Key de Google Gemini para visión y análisis multimodal"
+    )
+    gemini_model: str = Field(
+        default="gemini-3.8-flash",
+        validation_alias=AliasChoices("ECOEYE_GEMINI_MODEL", "GEMINI_MODEL"),
+        description="Modelo de Google Gemini para inferencia multimodal (gemini-3.8-flash)"
+    )
 
     # Sensado WiFi CSI
     csi_sample_rate_hz: int = Field(default=100, description="Frecuencia de muestreo de paquetes CSI")

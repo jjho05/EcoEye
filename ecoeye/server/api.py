@@ -33,6 +33,7 @@ from ecoeye.storage.repository import EcoEyeRepository, repository as _default_r
 from ecoeye.storage.sync_queue import SyncQueueManager
 from ecoeye.storage.postgres import PostgresManager, postgres_manager as _default_pg
 from ecoeye.server.auth import auth_manager, LoginRequest, LoginResponse, UserProfile
+from ecoeye.sensing.vision.gemini import GeminiVisionClient
 
 _START_TIME = time.time()
 
@@ -92,7 +93,7 @@ def create_app(
 
     @app.get("/health", tags=["System"])
     async def health() -> Dict[str, Any]:
-        """System health check with uptime and cloud database connectivity."""
+        """System health check with uptime, cloud database connectivity, and AI status."""
         db_summary = {
             "configured": _pg.is_configured(),
             "connected": False,
@@ -105,27 +106,39 @@ def create_app(
             except Exception:
                 pass
 
+        _gemini = GeminiVisionClient()
         return {
             "status": "healthy",
             "device_id": settings.device_id,
             "uptime_seconds": round(time.time() - _START_TIME, 1),
             "cloud_database": db_summary,
+            "ai_multimodal": {
+                "provider": "Google Gemini",
+                "model": settings.gemini_model,
+                "configured": _gemini.is_configured,
+            },
             "version": "1.0.0",
         }
 
     @app.get("/api/v1/stats", tags=["Telemetry"])
     async def stats() -> Dict[str, Any]:
-        """Aggregated telemetry counts, sync queue status, and cloud DB health."""
+        """Aggregated telemetry counts, sync queue status, cloud DB health, and AI status."""
         try:
             db_status = (
                 _pg.check_connection()
                 if _pg.is_configured()
                 else {"configured": False, "connected": False, "provider": "Neon Serverless PostgreSQL (No configurado)"}
             )
+            _gemini = GeminiVisionClient()
             return {
                 "storage": _repo.get_system_stats(),
                 "sync_queue": _queue.get_queue_stats(),
                 "database": db_status,
+                "ai_multimodal": {
+                    "provider": "Google Gemini",
+                    "model": settings.gemini_model,
+                    "configured": _gemini.is_configured,
+                },
                 "device_id": settings.device_id,
             }
         except Exception as exc:
@@ -208,6 +221,8 @@ def create_app(
     async def process_ocr(payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process OCR from a base64 encoded image or raw text mock.
+        When image_base64 is provided, Google Gemini (gemini-3.8-flash) is used for
+        multimodal OCR and medicine label reading when the API key is configured.
         Payload format: {"image_base64": "..."} or {"mock_text": "..."}
         """
         try:
@@ -218,6 +233,12 @@ def create_app(
                 _repo.save_ocr_reading(reading)
                 return reading.model_dump(mode="json")
             elif "image_base64" in payload:
+                gemini = GeminiVisionClient()
+                if gemini.is_configured:
+                    result = await gemini.read_medicine_and_ocr(payload["image_base64"])
+                    if result.get("success") is not False:
+                        return result
+                # Fallback: local PIL-based OCR
                 import base64
                 from io import BytesIO
                 from PIL import Image
@@ -239,6 +260,8 @@ def create_app(
     async def process_currency(payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process currency detection from a base64 encoded image or denomination mock.
+        When image_base64 is provided, Google Gemini (gemini-3.8-flash) is used for
+        high-accuracy banknote and coin denomination identification.
         Payload format: {"image_base64": "..."} or {"mock_denomination": 200.0}
         """
         try:
@@ -250,6 +273,12 @@ def create_app(
                 _repo.save_currency_detection(detection)
                 return detection.model_dump(mode="json")
             elif "image_base64" in payload:
+                gemini = GeminiVisionClient()
+                if gemini.is_configured:
+                    result = await gemini.identify_currency(payload["image_base64"])
+                    if result.get("success") is not False:
+                        return result
+                # Fallback: local classifier
                 import base64
                 from io import BytesIO
                 from PIL import Image
@@ -264,6 +293,30 @@ def create_app(
                 raise HTTPException(status_code=400, detail="Provide image_base64 or mock_denomination")
         except HTTPException:
             raise
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.post("/api/v1/vision/gemini/describe", tags=["Vision"])
+    async def gemini_describe_scene(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Visual Question Answering (VQA) and environmental scene description
+        using Google Gemini gemini-3.8-flash model.
+        Payload: {"image_base64": "...", "question": "Que hay frente a mi?" (optional)}
+        """
+        if "image_base64" not in payload:
+            raise HTTPException(status_code=400, detail="image_base64 es requerido")
+        gemini = GeminiVisionClient()
+        if not gemini.is_configured:
+            raise HTTPException(
+                status_code=503,
+                detail="GEMINI_API_KEY no configurada. Agrega la variable en Vercel > Settings > Environment Variables.",
+            )
+        try:
+            result = await gemini.describe_scene(
+                image_base64=payload["image_base64"],
+                question=payload.get("question"),
+            )
+            return result
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -308,13 +361,17 @@ def create_app(
                 )
                 if _pg.is_configured():
                     sev = "critica" if reading.is_urgent_low or reading.is_urgent_high else "advertencia"
-                    _pg.insert_alert(
-                        alert_id=str(reading.id),
-                        alert_type="anomalia_sistema",
-                        severity=sev,
-                        status="activa",
-                        payload={"glucose_mg_dl": val, "alert_level": str(reading.alert_level), "sensor_id": sensor_id},
-                    )
+                    try:
+                        _pg.insert_alert(
+                            alert_id=str(reading.id),
+                            alert_type="anomalia_sistema",
+                            severity=sev,
+                            status="activa",
+                            payload={"glucose_mg_dl": val, "alert_level": str(reading.alert_level), "sensor_id": sensor_id},
+                        )
+                    except Exception as pg_err:
+                        import logging as _log
+                        _log.getLogger(__name__).warning("Neon cloud mirror failed (glucose): %s", pg_err)
 
             return {
                 "status": reading.alert_level.value,
@@ -368,13 +425,17 @@ def create_app(
             # Mirror to Neon PostgreSQL if online
             cloud_synced = False
             if _pg.is_configured():
-                cloud_synced = _pg.insert_alert(
-                    alert_id=str(event.id),
-                    alert_type="caida_detectada",
-                    severity="critica",
-                    status="activa",
-                    payload={"variance": variance, "inactivity_secs": inactivity, "location": location},
-                )
+                try:
+                    cloud_synced = _pg.insert_alert(
+                        alert_id=str(event.id),
+                        alert_type="caida_detectada",
+                        severity="critica",
+                        status="activa",
+                        payload={"variance": variance, "inactivity_secs": inactivity, "location": location},
+                    )
+                except Exception as pg_err:
+                    import logging as _log
+                    _log.getLogger(__name__).warning("Neon cloud mirror failed (fall): %s", pg_err)
 
             return {
                 "protocol_verified": True,

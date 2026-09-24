@@ -105,10 +105,10 @@ class CurrencyDetector:
         """
         try:
             import cv2
-            import numpy as np
+            has_cv2 = True
         except ImportError:
-            logger.debug("OpenCV/NumPy not available for direct frame processing")
-            return None
+            has_cv2 = False
+        import numpy as np
 
         if frame is None:
             return None
@@ -120,28 +120,52 @@ class CurrencyDetector:
         if not isinstance(frame, np.ndarray) or frame.size == 0:
             return None
 
-        # Ensure 3-channel BGR/RGB
-        if len(frame.shape) == 2:
-            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         total_pixels = frame.shape[0] * frame.shape[1]
         best_denomination = None
         best_score = 0.0
 
-        for denom, profile in _BANKNOTE_PROFILES.items():
-            lower, upper = profile["hue_range"]
-            lower_np = np.array(lower, dtype=np.uint8)
-            upper_np = np.array(upper, dtype=np.uint8)
+        if has_cv2:
+            # Ensure 3-channel BGR/RGB
+            if len(frame.shape) == 2:
+                frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 
-            mask = cv2.inRange(hsv, lower_np, upper_np)
-            matched_pixels = cv2.countNonZero(mask)
-            ratio = matched_pixels / max(total_pixels, 1)
+            hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+            for denom, profile in _BANKNOTE_PROFILES.items():
+                lower, upper = profile["hue_range"]
+                lower_np = np.array(lower, dtype=np.uint8)
+                upper_np = np.array(upper, dtype=np.uint8)
 
-            # Banknote usually occupies at least 12% of central FOV
-            if ratio > 0.12 and ratio > best_score:
-                best_score = ratio
-                best_denomination = denom
+                mask = cv2.inRange(hsv, lower_np, upper_np)
+                matched_pixels = cv2.countNonZero(mask)
+                ratio = matched_pixels / max(total_pixels, 1)
+
+                if ratio > 0.12 and ratio > best_score:
+                    best_score = ratio
+                    best_denomination = denom
+        else:
+            # Fallback pure NumPy when OpenCV is not installed
+            if len(frame.shape) == 2:
+                return None
+            r = frame[:, :, 0].astype(float)
+            g = frame[:, :, 1].astype(float)
+            b = frame[:, :, 2].astype(float)
+
+            # Banknote dominant spectral profiles
+            green_mask = (g > r + 25) & (g > b + 25) & (g > 50)
+            blue_mask = (b > r + 25) & (b > g + 20) & (b > 50)
+            red_mask = (r > g + 25) & (r > b + 25) & (r > 50)
+            pink_mask = (r > 90) & (b > 50) & (g < r - 20)
+
+            candidates = [
+                (200.0, np.count_nonzero(green_mask) / max(total_pixels, 1)),
+                (500.0, np.count_nonzero(blue_mask) / max(total_pixels, 1)),
+                (100.0, np.count_nonzero(red_mask) / max(total_pixels, 1)),
+                (50.0, np.count_nonzero(pink_mask) / max(total_pixels, 1)),
+            ]
+            for denom, ratio in candidates:
+                if ratio > 0.12 and ratio > best_score:
+                    best_score = ratio
+                    best_denomination = denom
 
         if best_denomination is not None:
             confidence = min(0.70 + (best_score * 0.6), 0.98)

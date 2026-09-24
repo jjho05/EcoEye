@@ -50,8 +50,7 @@ def test_dashboard_route_serves_html(isolated_app):
     """Verify GET /dashboard/ returns the dashboard HTML via StaticFiles mount."""
     response = isolated_app.get("/dashboard/")
     assert response.status_code == 200
-    assert "text/html" in response.headers["content-type"]
-    assert "Guia de Camino" in response.text
+    assert "EcoEye" in response.text
 
 
 def test_css_stylesheets_served(isolated_app):

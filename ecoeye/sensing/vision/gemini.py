@@ -216,22 +216,39 @@ class GeminiVisionClient:
 
     async def read_medicine_and_ocr(self, image_base64: str) -> Dict[str, Any]:
         """
-        Specialized prompt for medicine labels, prescriptions, and signboards.
+        Specialized prompt for Mexican medicine labels, prescriptions, and pharmaceutical packaging.
+        Applies strict anti-false-positive verification against non-pharmaceutical items.
         """
+        from ecoeye.sensing.vision.medications_mx import identify_mexican_medication
+
         prompt = (
-            "Eres el lector OCR y asistente medico de EcoEye para personas con debilidad visual. "
-            "Lee todo el texto visible en la imagen. Presta especial atencion a nombres de medicamentos, "
-            "gramajes (mg/ml), indicaciones de toma (cada cuantas horas), fechas de caducidad o advertencias. "
-            "Responde estrictamente con un JSON valido con esta estructura: "
-            "{"
-            "  \"has_text\": true/false, "
-            "  \"is_medication\": true/false, "
-            "  \"full_text\": \"Transcripcion de todo el texto visible\", "
-            "  \"medicine_name\": \"Nombre del farmaco o null\", "
-            "  \"dosage\": \"Dosis o gramaje identificado o null\", "
-            "  \"instructions\": \"Instrucciones de uso detectadas o null\", "
-            "  \"audio_speech\": \"Mensaje conciso en espanol para locucion al paciente\", "
-            "  \"confidence\": 0.0 a 1.0"
+            "Eres el lector óptico y asistente farmacéutico de EcoEye para personas con discapacidad visual en México. "
+            "Tu tarea es identificar con máxima precisión medicamentos del mercado mexicano (cajas, frascos, blísteres, "
+            "ampolletas, jarabes, gotas o recetas médicas), tanto marcas de patente (ej. Tempra, Flanax, Actron, Losec, "
+            "Aspirina, Pepto-Bismol, Buscapina, Antiflu-Des, Tabcin, XL-3, etc.) como Genéricos Intercambiables (GI / "
+            "Farmacias Similares, Farmacias del Ahorro, Farmacias Guadalajara, Sanfer, Pisa, Alpharma, etc.).\n\n"
+            "REGLAS CRÍTICAS INNEGOCIABLES:\n"
+            "1. ANTI-FALSOS POSITIVOS: Si la imagen NO contiene un empaque de medicamento, caja de medicina, frasco farmacéutico, "
+            "blíster o receta (por ejemplo: si es un libro, una revista, una lata de refresco, comida, una pared, dinero, muebles o una persona), "
+            "debes responder estrictamente con is_medication: false, has_text: true/false, medicine_name: null, dosage: null, "
+            "audio_speech: 'No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente.', confidence: 0.0.\n"
+            "2. SI ES MEDICAMENTO: Extrae con exactitud:\n"
+            "   - Sustancia activa y/o nombre comercial mexicano.\n"
+            "   - Gramaje o concentración exacta (ej: 500 mg, 850 mg, 20 ml, 100 mcg).\n"
+            "   - Forma farmacéutica (Tabletas, Cápsulas, Jarabe, Suspensión infantil, etc.).\n"
+            "   - Vía de administración o advertencias clave si están visibles (ej: caducidad, lote, cada cuantas horas).\n"
+            "   - audio_speech: Frase clara y concisa en español mexicano para locución al paciente invidente.\n\n"
+            "Responde estrictamente con un JSON válido con esta estructura exacta:\n"
+            "{\n"
+            "  \"has_text\": true,\n"
+            "  \"is_medication\": true,\n"
+            "  \"full_text\": \"Transcripción de todo el texto visible\",\n"
+            "  \"medicine_name\": \"Nombre del fármaco y/o marca\",\n"
+            "  \"dosage\": \"Dosis o gramaje identificado (ej. 500 mg)\",\n"
+            "  \"form\": \"Tabletas / Cápsulas / Jarabe / etc.\",\n"
+            "  \"instructions\": \"Instrucciones o advertencias detectadas\",\n"
+            "  \"audio_speech\": \"Mensaje conciso en español para locución al paciente\",\n"
+            "  \"confidence\": 0.95\n"
             "}"
         )
 
@@ -252,17 +269,33 @@ class GeminiVisionClient:
             parsed = json.loads(raw_text)
             parsed["model"] = self.model
             parsed["provider"] = "Google Gemini"
+            # Si el modelo determinó que no es medicamento, asegurar audio speech claro
+            if not parsed.get("is_medication"):
+                parsed["is_medication"] = False
+                parsed["medicine_name"] = None
+                parsed["dosage"] = None
+                if not parsed.get("audio_speech") or "medicamento" in parsed.get("audio_speech", "").lower() and "detectado" in parsed.get("audio_speech", "").lower():
+                    parsed["audio_speech"] = "No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente."
             return parsed
         except Exception:
+            # Fallback a clasificador local de catálogo mexicano
+            local_match = identify_mexican_medication(raw_text)
+            if local_match:
+                local_match["full_text"] = raw_text
+                local_match["has_text"] = True
+                local_match["model"] = self.model
+                local_match["provider"] = "Google Gemini + Local Catalog"
+                return local_match
+
             return {
-                "has_text": True,
+                "has_text": bool(raw_text),
                 "is_medication": False,
                 "full_text": raw_text,
                 "medicine_name": None,
                 "dosage": None,
                 "instructions": None,
-                "audio_speech": raw_text[:120],
-                "confidence": 0.9,
+                "audio_speech": "No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente.",
+                "confidence": 0.0,
                 "model": self.model,
                 "provider": "Google Gemini",
             }

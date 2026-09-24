@@ -1077,21 +1077,24 @@ class EcoEyeDashboard {
       } else if (effectiveMode === 'meds') {
         const res = await this.api.processOCR({ image_base64: b64 });
 
-        if (res && (res.full_text || res.audio_speech)) {
-          const speech = res.audio_speech || res.full_text || 'Medicamento reconocido';
+        if (res && res.is_medication === true) {
+          const medName = res.medicine_name || 'Medicamento';
+          const dosage = res.dosage ? ` (${res.dosage})` : '';
+          const speech = res.audio_speech || `${medName}${dosage} reconocido.`;
           const conf = res.confidence ? Math.round(res.confidence * 100) : 95;
           this.renderOCR(res.full_text || speech);
           this.announceSpeech(speech);
           this.updateOcrResult({
-            category: 'Medicamento',
-            rawText: res.full_text || speech,
+            category: '💊 Medicamento',
+            rawText: res.full_text || `${medName}${dosage}`,
             spokenText: speech,
-            advice: res.instructions || res.dosage || 'Información de medicamento leída correctamente.'
+            advice: res.instructions || `Medicamento: ${medName}. Verifique indicaciones antes de tomar.`
           }, conf);
           return;
         }
 
-        this.announceSpeech('No se detecta etiqueta o nombre de medicamento. Enfoque la caja directamente.');
+        // Si la respuesta indica que NO es medicamento o no se detectó empaque farmacéutico
+        this.announceSpeech(res?.audio_speech || 'No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente.');
         return;
       }
     } catch (apiErr) {
@@ -3502,6 +3505,10 @@ class EcoEyeDashboard {
         confidence = 50;
       } else {
         const classified = this.classifyRecognizedText(rawText, this.scanner.activeMode);
+        if (this.scanner.activeMode === 'meds' && classified.category !== '💊 Medicamento') {
+          this.announceSpeech('No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente.');
+          return;
+        }
         this.updateOcrResult(classified, confidence);
         this.announceSpeech(classified.spokenText);
       }
@@ -3527,13 +3534,55 @@ class EcoEyeDashboard {
     let cleanText = rawText.replace(/\n\s*\n/g, '\n').trim();
     let spokenText = cleanText;
 
-    // 1. Detection: Medical Drugs and Dosages
-    const medKeywords = [
-      'PARACETAMOL', 'METFORMINA', 'INSULINA', 'IBUPROFENO', 'CAPSULAS', 'TABLETAS',
-      'MG', 'ML', 'DOSIS', 'TOMAR', 'HORAS', 'LABORATORIOS', 'CADUCIDAD', 'FARMACIA',
-      'AMOXICILINA', 'OMEPRAZOL', 'LOSARTAN', 'ATORVASTATINA', 'CLONAZEPAM', 'ALPRAZOLAM'
+    // 1. Detection: Medical Drugs and Dosages (Catálogo Nacional de México)
+    const mxDrugs = [
+      'PARACETAMOL', 'TEMPRA', 'TYLENOL', 'SEDALMERCK',
+      'IBUPROFENO', 'ACTRON', 'ADVIL', 'MOTRIN',
+      'NAPROXENO', 'FLANAX', 'DAFLOXEN',
+      'ASPIRINA', 'ACETILSALICILICO', 'CAFIASPIRINA',
+      'KETOROLACO', 'DOLAC', 'SUPRADOL',
+      'METAMIZOL', 'NEO-MELUBRINA', 'NEOMELUBRINA',
+      'METFORMINA', 'GLUCOPHAGE', 'DIMEFOR',
+      'GLIBENCLAMIDA', 'DAONIL', 'EUGLUCON',
+      'LOSARTAN', 'COZAAR',
+      'ENALAPRIL', 'RENITEC',
+      'CAPTOPRIL', 'CAPOTEN',
+      'ATORVASTATINA', 'LIPITOR', 'TAHOR',
+      'AMLODIPINO', 'NORVASC',
+      'INSULINA', 'HUMULIN', 'NOVOLIN',
+      'OMEPRAZOL', 'LOSEC',
+      'PANTOPRAZOL', 'TECTA',
+      'PEPTO-BISMOL', 'PEPTO BISMOL', 'BISMUTO',
+      'LOPERAMIDA', 'IMODIUM',
+      'BUSCAPINA', 'BUTILHIOSCINA',
+      'AMOXICILINA', 'AMOXIL', 'AUGMENTIN', 'CLAVULIN',
+      'CIPROFLOXACINO', 'CIPROXINA',
+      'AZITROMICINA', 'AZITROCIN',
+      'ANTIFLU-DES', 'ANTIFLUDES', 'TABCIN', 'XL-3', 'XL3',
+      'LORATADINA', 'CLARITYNE',
+      'SALBUTAMOL', 'VENTOLIN',
+      'AMBROXOL', 'MUCOSOLVAN',
+      'BEDOYECTA', 'TRIBEDOCE', 'COMPLEJO B',
+      'ACIDO FOLICO', 'CLONAZEPAM', 'ALPRAZOLAM'
     ];
-    const isMed = medKeywords.some(kw => upper.includes(kw)) || mode === 'meds';
+
+    const pharmaMarkers = [
+      'TABLETAS', 'CAPSULAS', 'GRAGEAS', 'JARABE', 'SUSPENSION', 'SOLUCION',
+      'GOTAS', 'INYECTABLE', 'AMPOLLETA', 'BLISTER', 'FARMACIA', 'LABORATORIO',
+      'LABORATORIOS', 'COFEPRIS', 'SSA', 'CADUCIDAD', 'GENERICO INTERCAMBIABLE'
+    ];
+
+    const nonMedMarkers = [
+      'COCA COLA', 'PEPSI', 'SABRITAS', 'PAPAS', 'GALLETAS', 'GAMESA', 'BIMBO',
+      'CEREAL', 'LECHE', 'JABON', 'CHAMPU', 'SHAMPOO', 'CERVEZA', 'VINO', 'LIBRO'
+    ];
+
+    const hasNonMed = nonMedMarkers.some(kw => upper.includes(kw));
+    const hasDrugMatch = mxDrugs.some(kw => upper.includes(kw));
+    const hasPharmaMarker = pharmaMarkers.some(kw => upper.includes(kw));
+    const hasDosage = /\b\d+\s*(MG|ML|MCG|G|UI)\b/i.test(upper);
+
+    const isMed = !hasNonMed && (hasDrugMatch || (hasDosage && hasPharmaMarker));
 
     // 2. Detection: Mexican Banknotes (con análisis de denominación)
     const currencyKeywords = [
@@ -3557,7 +3606,7 @@ class EcoEyeDashboard {
       this.state.currencyDenom = recognizedDenom;
       this.renderCurrencyHUD(recognizedDenom);
     } else if (isMed) {
-      category = 'Medicamento';
+      category = '💊 Medicamento';
       advice = 'Medicamento reconocido. Verifique dosis y caducidad antes de administrar.';
       spokenText = `Medicamento detectado: ${cleanText.substring(0, 120)}`;
     } else if (isCurrency) {

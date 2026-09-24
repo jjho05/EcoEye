@@ -229,9 +229,21 @@ def create_app(
             from ecoeye.sensing.vision.ocr import OCRReader
             reader = OCRReader(device_id=settings.device_id)
             if "mock_text" in payload:
+                from ecoeye.sensing.vision.medications_mx import identify_mexican_medication
                 reading = reader.synthesize_reading(raw_text=payload["mock_text"], cleaned_text=payload["mock_text"])
                 _repo.save_ocr_reading(reading)
-                return reading.model_dump(mode="json")
+                base_dict = reading.model_dump(mode="json")
+                med_info = identify_mexican_medication(payload["mock_text"])
+                if med_info:
+                    return {**base_dict, **med_info, "has_text": True}
+                return {
+                    **base_dict,
+                    "has_text": True,
+                    "is_medication": False,
+                    "medicine_name": None,
+                    "dosage": None,
+                    "audio_speech": "No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente.",
+                }
             elif "image_base64" in payload:
                 gemini = GeminiVisionClient()
                 if gemini.is_configured:
@@ -242,13 +254,30 @@ def create_app(
                 import base64
                 from io import BytesIO
                 from PIL import Image
+                from ecoeye.sensing.vision.medications_mx import identify_mexican_medication
                 img_data = base64.b64decode(payload["image_base64"])
                 image = Image.open(BytesIO(img_data))
                 reading = reader.extract_text_from_frame(image)
                 if reading:
                     _repo.save_ocr_reading(reading)
-                    return reading.model_dump(mode="json")
-                return {"status": "no_text_detected"}
+                    base_dict = reading.model_dump(mode="json")
+                    med_info = identify_mexican_medication(reading.cleaned_text)
+                    if med_info:
+                        return {**base_dict, **med_info, "has_text": True}
+                    return {
+                        **base_dict,
+                        "has_text": True,
+                        "is_medication": False,
+                        "medicine_name": None,
+                        "dosage": None,
+                        "audio_speech": "No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente.",
+                    }
+                return {
+                    "status": "no_text_detected",
+                    "has_text": False,
+                    "is_medication": False,
+                    "audio_speech": "No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente.",
+                }
             else:
                 raise HTTPException(status_code=400, detail="Provide image_base64 or mock_text")
         except HTTPException:

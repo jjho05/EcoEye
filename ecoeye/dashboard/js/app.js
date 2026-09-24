@@ -1051,17 +1051,15 @@ class EcoEyeDashboard {
     // --- Attempt Gemini cloud inference ---
     try {
       if (effectiveMode === 'currency') {
-        this.showToast('Gemini Analizando...', 'Identificando denominacion con modelo gemini-3.8-flash...', 'info');
         const res = await this.api.processCurrency({ image_base64: b64 });
 
-        if (res && (res.denomination || res.audio_speech)) {
+        if (res && res.is_currency && res.denomination) {
           const denom = res.denomination;
-          const speech = res.audio_speech || (denom ? `Billete de ${denom} pesos mexicanos` : 'Dinero en efectivo detectado');
+          const speech = res.audio_speech || `Billete de ${denom} pesos mexicanos`;
           const conf = res.confidence ? Math.round(res.confidence * 100) : 97;
 
           if (denom) this.renderCurrencyHUD(denom);
           this.announceSpeech(speech);
-          this.showToast('Efectivo Identificado', `$${denom || '?'} MXN — ${conf}% certeza (Gemini)`, 'normal');
           // Update scanner result card if visible
           this.updateOcrResult({
             category: 'Billete / Efectivo MXN',
@@ -1072,14 +1070,10 @@ class EcoEyeDashboard {
           return;
         }
 
-        // Gemini responded but found no currency
-        if (res && res.is_currency === false) {
-          this.announceSpeech('No se detecta un billete en la imagen. Enfoque el billete directamente.');
-          this.showToast('Sin Billete Detectado', 'Gemini no encontro efectivo en este fotograma', 'warning');
-          return;
-        }
-      } else if (effectiveMode === 'meds' || effectiveMode === 'text') {
-        this.showToast('Leyendo Medicamento...', 'OCR asistivo con gemini-3.8-flash activo...', 'info');
+        // No currency detected in frame
+        this.announceSpeech('No se detecta un billete en la imagen. Enfoque el billete directamente.');
+        return;
+      } else if (effectiveMode === 'meds') {
         const res = await this.api.processOCR({ image_base64: b64 });
 
         if (res && (res.full_text || res.audio_speech)) {
@@ -1087,7 +1081,6 @@ class EcoEyeDashboard {
           const conf = res.confidence ? Math.round(res.confidence * 100) : 95;
           this.renderOCR(res.full_text || speech);
           this.announceSpeech(speech);
-          this.showToast('Medicamento Leido', `${res.medicine_name || 'Texto'} — ${conf}% certeza`, 'normal');
           this.updateOcrResult({
             category: res.is_medication ? 'Medicamento' : 'Texto General',
             rawText: res.full_text || speech,
@@ -1098,13 +1091,11 @@ class EcoEyeDashboard {
         }
       } else {
         // Auto / scene description
-        this.showToast('Analizando Escena...', 'Descripcion ambiental con gemini-3.8-flash...', 'info');
         const res = await this.api.geminiDescribeScene({ image_base64: b64 });
 
         if (res && (res.summary || res.detailed_description)) {
           const speech = res.summary || res.detailed_description;
           this.announceSpeech(speech);
-          this.showToast('Escena Descrita', speech.substring(0, 60), 'normal');
           this.updateOcrResult({
             category: 'Descripcion de Escena',
             rawText: res.detailed_description || speech,
@@ -2575,8 +2566,7 @@ class EcoEyeDashboard {
             auto: 'Modo Auto',
             depth: 'Modo Detección de Profundidad',
             meds: 'Modo Medicamentos',
-            currency: 'Modo Billetes',
-            text: 'Modo Texto'
+            currency: 'Modo Billetes'
           };
           this.showToast('Escáner', `${labels[this.scanner.activeMode] || 'Auto'} activado`, 'info');
 
@@ -2596,10 +2586,6 @@ class EcoEyeDashboard {
             if (this.dom.depthRadarCard) this.dom.depthRadarCard.style.display = 'none';
             if (this.dom.btnContinuousDepthText) {
               this.dom.btnContinuousDepthText.textContent = this.scanner.currencyContinuous ? 'Auto-Detección: ON' : 'Auto-Detección: OFF';
-            }
-            // Iniciar auto-detección continua si la cámara ya está activa
-            if (this.scanner.isCameraActive && !this.scanner.currencyContinuous) {
-              this.toggleContinuousCurrencyScan(true);
             }
           } else {
             this.stopContinuousDepthLoop();
@@ -3568,13 +3554,13 @@ class EcoEyeDashboard {
     if (/\bVEINTE\b/.test(upper)) return 20;
     if (/\bMIL\b/.test(upper) && !/\b(DOS|TRES|CUATRO|CINCO)\s+MIL\b/.test(upper)) return 1000;
 
-    // 2. Detección numérica limpia con tolerancias OCR comunes (ej: S00 por 500)
+    // 2. Detección numérica limpia (ej: $500, $200, $100, $50, $20)
     if (/(?:^|[^\d])\$?\s*1000(?!\d)/.test(upper)) return 1000;
-    if (/(?:^|[^\d])\$?\s*(500|[S5][O0]{2})(?!\d)/.test(upper)) return 500;
-    if (/(?:^|[^\d])\$?\s*(200|[2Z][O0]{2})(?!\d)/.test(upper)) return 200;
-    if (/(?:^|[^\d])\$?\s*(100|[1I|l][O0]{2})(?!\d)/.test(upper)) return 100;
-    if (/(?:^|[^\d])\$?\s*(50|[S5][O0])(?!\d)/.test(upper)) return 50;
-    if (/(?:^|[^\d])\$?\s*(20|[2Z][O0])(?!\d)/.test(upper)) return 20;
+    if (/(?:^|[^\d])\$?\s*500(?!\d)/.test(upper)) return 500;
+    if (/(?:^|[^\d])\$?\s*200(?!\d)/.test(upper)) return 200;
+    if (/(?:^|[^\d])\$?\s*100(?!\d)/.test(upper)) return 100;
+    if (/(?:^|[^\d])\$?\s*50(?!\d)/.test(upper)) return 50;
+    if (/(?:^|[^\d])\$?\s*20(?!\d)/.test(upper)) return 20;
 
     return null;
   }
@@ -3768,8 +3754,6 @@ class EcoEyeDashboard {
     if (this.dom.ocrAdviceText) {
       this.dom.ocrAdviceText.textContent = classified.advice;
     }
-
-    this.showToast('Lectura Exitosa', `${classified.category}: ${confidence}% precisión`, 'normal');
   }
 
   showOcrProgress(pct, statusText) {

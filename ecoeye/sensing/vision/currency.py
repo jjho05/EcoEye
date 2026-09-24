@@ -270,7 +270,8 @@ class CurrencyDetector:
             # to avoid triggering on near-grey or desaturated colors.
             green_mask = (g > r + 35) & (g > b + 35) & (g > 60)
             blue_mask = (b > r + 35) & (b > g + 30) & (b > 60)
-            red_mask = (r > g + 35) & (r > b + 35) & (r > 60)
+            # Tighter red mask for $100 MXN: rejects human skin tones (which have moderate green)
+            red_mask = (r > 130) & (r > g * 1.55) & (r > b * 1.65) & (g < 140)
             pink_mask = (r > 100) & (b > 60) & (g < r - 30) & (b > g - 10)
 
             candidates = [

@@ -3127,18 +3127,9 @@ class EcoEyeDashboard {
       } catch (_) {}
     }
 
-    // 2. High-speed Computer Vision & Depth Projection Fallback
-    if (!predictions || predictions.length === 0) {
-      // Heuristic spatial bounding box from frame center & contrast
-      const centerX = width * 0.5;
-      const centerY = height * 0.5;
-      predictions = [
-        {
-          class: 'person',
-          score: 0.94,
-          bbox: [width * 0.22, height * 0.18, width * 0.56, height * 0.72]
-        }
-      ];
+    // 2. Filter valid predictions (only real neural detections)
+    if (!predictions || !Array.isArray(predictions)) {
+      predictions = [];
     }
 
     // Dictionary for friendly Spanish labels and accessibility icons
@@ -3318,7 +3309,46 @@ class EcoEyeDashboard {
   }
 
   updateDepthRadarUi(objects) {
-    if (objects.length === 0) return;
+    if (!objects || objects.length === 0) {
+      this.scanner.nearestDistance = null;
+      if (this.dom.depthUrgencyPill) {
+        this.dom.depthUrgencyPill.textContent = '🟢 VÍA DESPEJADA';
+        this.dom.depthUrgencyPill.style.background = 'rgba(0, 245, 160, 0.15)';
+        this.dom.depthUrgencyPill.style.color = '#00f5a0';
+        this.dom.depthUrgencyPill.style.borderColor = 'rgba(0, 245, 160, 0.3)';
+      }
+
+      if (this.dom.depthNearestDistancePill) {
+        this.dom.depthNearestDistancePill.textContent = 'Proximidad: Despejado';
+      }
+
+      const resetSector = (box, distElem, statusElem, defaultDist) => {
+        if (!box || !distElem || !statusElem) return;
+        distElem.textContent = `${defaultDist} m`;
+        distElem.style.color = '#00f5a0';
+        statusElem.textContent = 'Libre';
+        statusElem.style.color = '#00f5a0';
+        box.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+        box.style.background = 'rgba(255, 255, 255, 0.03)';
+      };
+
+      resetSector(this.dom.depthSectorLeft, this.dom.depthDistLeft, this.dom.depthStatusLeft, '2.4');
+      resetSector(this.dom.depthSectorCenter, this.dom.depthDistCenter, this.dom.depthStatusCenter, '2.0');
+      resetSector(this.dom.depthSectorRight, this.dom.depthDistRight, this.dom.depthStatusRight, '2.6');
+
+      if (this.dom.depthObjectsCount) {
+        this.dom.depthObjectsCount.textContent = '0 objetos';
+      }
+
+      if (this.dom.depthDetectedObjectsList) {
+        this.dom.depthDetectedObjectsList.innerHTML = '<span style="font-size:0.8rem; color:var(--text-secondary, rgba(255,255,255,0.5));">Ningún obstáculo detectado</span>';
+      }
+
+      if (this.dom.depthGuidanceText) {
+        this.dom.depthGuidanceText.textContent = 'Vía libre. No se detectan obstáculos ni personas en el campo visual.';
+      }
+      return;
+    }
 
     // Find closest object
     const sorted = [...objects].sort((a, b) => a.distanceMeters - b.distanceMeters);

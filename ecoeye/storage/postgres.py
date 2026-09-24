@@ -149,10 +149,14 @@ class PostgresManager:
                     """
                     INSERT INTO auth.users (id, email, raw_user_meta_data)
                     VALUES (%s, %s, %s)
-                    ON CONFLICT (id) DO NOTHING;
+                    ON CONFLICT (email) DO UPDATE SET raw_user_meta_data = EXCLUDED.raw_user_meta_data
+                    RETURNING id;
                     """,
                     (user_uuid, "paciente.demo@ecoeye.lat", json.dumps({"full_name": patient_name}))
                 )
+                row = cur.fetchone()
+                if row:
+                    user_uuid = str(row[0])
 
                 # Asegurar por si el trigger estuviera desactivado
                 cur.execute(
@@ -171,12 +175,16 @@ class PostgresManager:
                         id, user_id, mac_address, device_name, device_type, status, last_heartbeat
                     )
                     VALUES (%s, %s, %s, %s, 'wearable_hub'::public.device_type, 'activo'::public.device_status, NOW())
-                    ON CONFLICT (id) DO UPDATE SET
+                    ON CONFLICT (mac_address) DO UPDATE SET
                         last_heartbeat = NOW(),
-                        status = 'activo'::public.device_status;
+                        status = 'activo'::public.device_status
+                    RETURNING id;
                     """,
                     (device_uuid, user_uuid, settings.device_id, device_name)
                 )
+                dev_row = cur.fetchone()
+                if dev_row:
+                    device_uuid = str(dev_row[0])
 
         return user_uuid, device_uuid
 

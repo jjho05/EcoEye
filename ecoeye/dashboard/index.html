@@ -265,9 +265,17 @@
               </svg>
             </div>
             <div>
-              <h2 class="scanner-card-title">Escáner</h2>
-              <span class="scanner-card-desc">Apunta la cámara para escanear billetes, medicamentos o códigos.</span>
+              <h2 class="scanner-card-title">Escáner IA con Lector OCR</h2>
+              <span class="scanner-card-desc">Reconocimiento óptico de medicamentos, billetes y letreros con lectura por voz en tiempo real (100% en navegador).</span>
             </div>
+          </div>
+
+          <!-- Scanner Mode Selector Pills -->
+          <div class="analytics-filter-pills" id="scanner-mode-pills" style="margin-top:0.35rem;">
+            <button class="analytics-pill-btn active" data-scan-mode="auto">🔍 Auto</button>
+            <button class="analytics-pill-btn" data-scan-mode="meds">💊 Medicamentos</button>
+            <button class="analytics-pill-btn" data-scan-mode="currency">💵 Billetes MXN</button>
+            <button class="analytics-pill-btn" data-scan-mode="text">📄 Texto / Letrero</button>
           </div>
         </div>
 
@@ -276,7 +284,7 @@
           <video id="vision-video-element" autoplay playsinline muted></video>
           <canvas id="vision-canvas" style="display:none;"></canvas>
 
-          <!-- Reticle & 4 White Brackets Overlay (Identical to Image 2) -->
+          <!-- Reticle & 4 White Brackets Overlay -->
           <div class="scanner-viewfinder-overlay">
             <div class="scanner-target-reticle">
               <span class="scanner-bracket-tl"></span>
@@ -285,23 +293,37 @@
               <span class="scanner-bracket-br"></span>
               <div class="scanner-laser-beam"></div>
             </div>
-            <span class="scanner-info-pill">
+            <span class="scanner-info-pill" id="scanner-status-badge" title="Estado de la Cámara">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </span>
           </div>
 
-          <div id="scanner-placeholder-msg" class="scanner-placeholder-msg" style="display:none;">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00f5a0" stroke-width="1.8">
+          <div id="scanner-placeholder-msg" class="scanner-placeholder-msg">
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#00f5a0" stroke-width="1.8">
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
               <circle cx="12" cy="13" r="4"></circle>
             </svg>
-            <span>Cámara lista para escanear</span>
+            <span style="font-weight:600; font-size:0.95rem; color:var(--text-main);">Cámara lista para escanear</span>
+            <span style="font-size:0.78rem; color:var(--text-muted);">Toca "Iniciar Cámara" o sube una fotografía</span>
           </div>
+        </div>
+
+        <!-- Camera Control Bar (Iniciar/Detener, Subir Foto, Flash/Auto) -->
+        <div style="display:flex; justify-content:center; align-items:center; gap:0.75rem; margin-top:1rem; flex-wrap:wrap;">
+          <button id="btn-toggle-camera" class="btn-action" style="background:rgba(0,245,160,0.12); color:#00f5a0; border:1px solid rgba(0,245,160,0.3); border-radius:8px; padding:0.5rem 1.1rem; font-weight:700; display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <span id="btn-toggle-camera-text">Iniciar Cámara</span>
+          </button>
+
+          <button id="btn-upload-scanner-img" class="btn-action" style="background:var(--bg-subtle); color:var(--text-secondary); border:1px solid var(--border-subtle); border-radius:8px; padding:0.5rem 1.1rem; font-weight:600; display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <span>Subir Foto</span>
+          </button>
         </div>
 
         <!-- Botón Circular para Escanear lo que hay en cámara -->
         <div class="scanner-shutter-container">
-          <button id="btn-circular-scan" class="scanner-shutter-btn" title="Escanear lo que hay en cámara" aria-label="Escanear">
+          <button id="btn-circular-scan" class="scanner-shutter-btn" title="Escanear y reconocer texto" aria-label="Escanear">
             <div class="scanner-shutter-inner">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3"></circle>
@@ -309,10 +331,55 @@
               </svg>
             </div>
           </button>
-          <span style="font-size:0.8rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">Toca para escanear</span>
+          <span style="font-size:0.8rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;" id="scanner-shutter-hint">Toca para escanear</span>
         </div>
 
-        <!-- Utility Controls (Cámara y subida para pruebas) -->
+        <!-- OCR Processing Progress Box (Hidden by default) -->
+        <div id="scanner-progress-box" style="display:none; margin: 0.75rem auto 1.25rem; max-width: 460px; width: 100%;">
+          <div style="display:flex; justify-content:space-between; font-size:0.78rem; font-weight:600; margin-bottom:0.35rem; color:var(--text-secondary);">
+            <span id="scanner-progress-status">Iniciando motor OCR...</span>
+            <span id="scanner-progress-pct" style="color:#00f5a0; font-family:var(--font-mono);">0%</span>
+          </div>
+          <div style="width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden;">
+            <div id="scanner-progress-bar" style="width:0%; height:100%; background:linear-gradient(90deg, #00f5a0, #06b6d4); transition: width 0.15s ease;"></div>
+          </div>
+        </div>
+
+        <!-- OCR & Visual AI Result Card (Interactive Readout) -->
+        <div id="scanner-result-card" class="scanner-readout-card" style="margin-top: 1rem; text-align: left;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <span id="ocr-category-pill" class="status-pill normal" style="font-size:0.75rem; padding:0.25rem 0.65rem; background:rgba(0,245,160,0.15); color:#00f5a0; border:1px solid rgba(0,245,160,0.3); font-weight:700;">
+                💊 Medicamento
+              </span>
+              <span id="ocr-confidence-pill" style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">Confianza: 98%</span>
+            </div>
+
+            <div style="display:flex; gap:0.4rem;">
+              <button id="btn-read-aloud-ocr" class="btn-action" title="Leer en voz alta" style="font-size:0.75rem; padding:0.3rem 0.65rem; background:rgba(0,245,160,0.12); color:#00f5a0; border:1px solid rgba(0,245,160,0.3); border-radius:6px; display:flex; align-items:center; gap:0.3rem; cursor:pointer;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                <span>Voz</span>
+              </button>
+              <button id="btn-copy-ocr-text" class="btn-action" title="Copiar texto" style="font-size:0.75rem; padding:0.3rem 0.65rem; background:var(--bg-subtle); color:var(--text-secondary); border:1px solid var(--border-subtle); border-radius:6px; display:flex; align-items:center; gap:0.3rem; cursor:pointer;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span>Copiar</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Recognized Text Body -->
+          <div id="ocr-recognized-text-box" style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:8px; padding:0.9rem; font-family:var(--font-body); font-size:1.05rem; font-weight:600; line-height:1.45; color:var(--text-main); min-height:60px; word-break:break-word;">
+            PARACETAMOL 500 MG - 1 TABLETA CADA 8 HORAS
+          </div>
+
+          <!-- Extra Advice / Clinical Guidance -->
+          <div id="ocr-extra-advice" style="margin-top:0.6rem; font-size:0.8rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.4rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00f5a0" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <span id="ocr-advice-text">Dosis prescrita registrada en el plan de cuidados de Don Félix.</span>
+          </div>
+        </div>
+
+        <!-- Utility File Input -->
         <input type="file" id="vision-file-input" accept="image/*" style="display:none;" />
         <button id="btn-snap-camera" style="display:none;" aria-hidden="true"></button>
         <button id="btn-upload-file" style="display:none;" aria-hidden="true"></button>
@@ -724,6 +791,9 @@
 
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
+
+  <!-- Tesseract.js v5 for Client-Side WebAssembly OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <!-- Scripts with Cache Busting -->
   <script src="./js/api.js?v=2.3.0"></script>

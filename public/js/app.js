@@ -3123,11 +3123,24 @@ class EcoEyeDashboard {
     // 1. If COCO-SSD is ready, execute neural inference
     if (this.scanner.objectModel) {
       try {
-        predictions = await this.scanner.objectModel.detect(sourceElement);
+        const rawPredictions = await this.scanner.objectModel.detect(sourceElement);
+        // 2. Filter: only accept predictions with score >= 0.55 AND reasonable bounding box size
+        const totalArea = width * height;
+        predictions = (rawPredictions || []).filter(pred => {
+          if (!pred || !pred.bbox || pred.score < 0.55) return false;
+          const [bx, by, bw, bh] = pred.bbox;
+          const area = bw * bh;
+          const areaRatio = area / totalArea;
+          // Discard boxes that are too small (<2% of frame) or unrealistically large (>90% of frame)
+          if (areaRatio < 0.02 || areaRatio > 0.90) return false;
+          // Discard boxes outside the frame boundaries
+          if (bx < 0 || by < 0 || bx + bw > width * 1.1 || by + bh > height * 1.1) return false;
+          return true;
+        });
       } catch (_) {}
     }
 
-    // 2. Filter valid predictions (only real neural detections)
+    // Ensure predictions is always a valid array
     if (!predictions || !Array.isArray(predictions)) {
       predictions = [];
     }

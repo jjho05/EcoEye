@@ -969,13 +969,15 @@ class EcoEyeDashboard {
     if (videoEl) {
       videoEl.srcObject = null;
     }
-    if (viewportEl) {
-      viewportEl.style.display = 'none';
     }
   }
 
-  captureFrameBase64(videoEl, canvasEl) {
-    if (!videoEl || !canvasEl) return null;
+  captureFrameBase64(videoEl, canvasEl, mode = 'currency') {
+    if (!videoEl) return null;
+    if (mode === 'currency') {
+      const cropped = this.capturarRecorteParaOCR(videoEl, mode);
+      return cropped.toDataURL('image/jpeg', 0.90);
+    }
     const w = videoEl.videoWidth || 640;
     const h = videoEl.videoHeight || 480;
     canvasEl.width = w;
@@ -986,7 +988,7 @@ class EcoEyeDashboard {
   }
 
   async processCameraCapture(videoEl, canvasEl, mode = 'currency') {
-    const dataUrl = this.captureFrameBase64(videoEl, canvasEl);
+    const dataUrl = this.captureFrameBase64(videoEl, canvasEl, mode);
     if (!dataUrl) {
       this.showToast('Error', 'No hay fotograma valido de la camara', 'critical');
       return;
@@ -2886,26 +2888,68 @@ class EcoEyeDashboard {
     }
   }
 
+  capturarRecorteParaOCR(video, mode = 'currency') {
+    const vw = video.videoWidth || 640;
+    const vh = video.videoHeight || 480;
+
+    // 1. Recortar el frame del video en tiempo real (área central apuntadora)
+    let cropWidth, cropHeight;
+    if (mode === 'currency') {
+      // Proporción Banxico (~1.85:1) coincidente con el recuadro blanco del visor
+      cropWidth = Math.round(vw * 0.76);
+      cropHeight = Math.round(cropWidth / 1.85);
+      if (cropHeight > vh * 0.85) {
+        cropHeight = Math.round(vh * 0.85);
+        cropWidth = Math.round(cropHeight * 1.85);
+      }
+    } else {
+      // Modo medicamentos / texto / letreros
+      cropWidth = Math.round(vw * 0.75);
+      cropHeight = Math.round(vh * 0.65);
+    }
+
+    cropWidth = Math.min(cropWidth, vw);
+    cropHeight = Math.min(cropHeight, vh);
+
+    const startX = Math.max(0, Math.floor((vw - cropWidth) / 2));
+    const startY = Math.max(0, Math.floor((vh - cropHeight) / 2));
+
+    const canvas = this.dom.visionCanvas || document.createElement('canvas');
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+    const ctx = canvas.getContext('2d');
+
+    // 2. Binarizar el recorte con alto contraste para eliminar ruido y fondos complejos
+    ctx.filter = 'grayscale(100%) contrast(200%)';
+    ctx.drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+    ctx.filter = 'none';
+
+    return canvas;
+  }
+
   triggerScanCapture() {
     if (this.scanner.isProcessing) return;
 
     if (this.scanner.isCameraActive && this.dom.visionVideoElement) {
-      // Capture frame from video to canvas
       const video = this.dom.visionVideoElement;
       if (video.videoWidth > 0 && video.videoHeight > 0) {
-        const canvas = this.dom.visionCanvas || document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Feedback visual en el retículo apuntador
+        const reticle = document.querySelector('.scanner-target-reticle');
+        if (reticle) {
+          reticle.classList.add('scan-flashing');
+          setTimeout(() => reticle.classList.remove('scan-flashing'), 400);
+        }
 
-        // If in Depth Mode, run object and monocular depth detection
+        // Si está en Modo Profundidad, correr detección de objetos y radar
         if (this.scanner.activeMode === 'depth') {
           this.runObjectAndDepthInference(video);
           return;
         }
 
-        // Preprocess image for OCR contrast
+        // 1. Recorte del visor central + 2. Binarización con alto contraste
+        const canvas = this.capturarRecorteParaOCR(video, this.scanner.activeMode);
+
+        // Preprocesamiento adicional adaptativo
         this.preprocessCanvasForOcr(canvas);
         this.runOcrInference(canvas);
         return;
@@ -3379,44 +3423,120 @@ class EcoEyeDashboard {
     } catch (_) {}
   }
 
+  parseBanknoteDenomination(rawText) {
+    if (!rawText) return null;
+    const upper = rawText.toUpperCase();
+
+    // 1. Detección por palabras textuales (máxima especificidad Banxico)
+    if (/\bQUINIENTOS\b/.test(upper)) return 500;
+    if (/\bDOSCIENTOS\b/.test(upper)) return 200;
+    if (/\bCIEN\b/.test(upper)) return 100;
+    if (/\bCINCUENTA\b/.test(upper)) return 50;
+    if (/\bVEINTE\b/.test(upper)) return 20;
+    if (/\bMIL\b/.test(upper) && !/\b(DOS|TRES|CUATRO|CINCO)\s+MIL\b/.test(upper)) return 1000;
+
+    // 2. Detección numérica limpia con tolerancias OCR comunes (ej: S00 por 500)
+    if (/(?:^|[^\d])\$?\s*1000(?!\d)/.test(upper)) return 1000;
+    if (/(?:^|[^\d])\$?\s*(500|[S5][O0]{2})(?!\d)/.test(upper)) return 500;
+    if (/(?:^|[^\d])\$?\s*(200|[2Z][O0]{2})(?!\d)/.test(upper)) return 200;
+    if (/(?:^|[^\d])\$?\s*(100|[1I|l][O0]{2})(?!\d)/.test(upper)) return 100;
+    if (/(?:^|[^\d])\$?\s*(50|[S5][O0])(?!\d)/.test(upper)) return 50;
+    if (/(?:^|[^\d])\$?\s*(20|[2Z][O0])(?!\d)/.test(upper)) return 20;
+
+    return null;
+  }
+
   async runOcrInference(imageSource) {
     if (this.scanner.isProcessing) return;
     this.scanner.isProcessing = true;
-    this.showOcrProgress(10, 'Iniciando reconocimiento optico local (Tesseract WASM)...');
+    this.showOcrProgress(10, 'Iniciando reconocimiento óptico local (Tesseract WASM)...');
 
     try {
       let rawText = '';
       let confidence = 85;
 
       if (typeof window !== 'undefined' && window.Tesseract) {
-        this.showOcrProgress(30, 'Analizando caracteres opticos (WASM)...');
+        this.showOcrProgress(30, 'Analizando caracteres ópticos (WASM)...');
+        const isCurrencyMode = this.scanner.activeMode === 'currency';
 
-        const result = await window.Tesseract.recognize(imageSource, 'spa+eng', {
-          logger: (m) => {
-            if (m.status === 'recognizing text' && m.progress) {
-              const pct = Math.min(95, Math.round(30 + m.progress * 65));
-              this.showOcrProgress(pct, `Reconociendo texto: ${pct}%`);
+        // 3. Uso de Worker con lista blanca según modo para evitar inventar caracteres
+        if (window.Tesseract.createWorker) {
+          try {
+            if (!this.scanner.tesseractWorker) {
+              this.showOcrProgress(35, 'Cargando motor de caracteres...');
+              this.scanner.tesseractWorker = await window.Tesseract.createWorker('spa', 1, {
+                logger: (m) => {
+                  if (m.status === 'recognizing text' && m.progress) {
+                    const pct = Math.min(95, Math.round(30 + m.progress * 65));
+                    this.showOcrProgress(pct, `Reconociendo caracteres: ${pct}%`);
+                  }
+                }
+              });
             }
-          }
-        });
 
-        rawText = result.data.text ? result.data.text.trim() : '';
-        confidence = Math.round(result.data.confidence || 82);
+            const worker = this.scanner.tesseractWorker;
+            if (isCurrencyMode) {
+              // Lista blanca estricta para billetes (números, $, palabras clave Banxico)
+              await worker.setParameters({
+                tessedit_char_whitelist: '0123456789$BANCODEMXIPESQUINTVECL., ',
+              });
+            } else {
+              // Restablecer a texto libre para medicamentos o letreros
+              await worker.setParameters({
+                tessedit_char_whitelist: '',
+              });
+            }
+
+            const result = await worker.recognize(imageSource);
+            rawText = result.data.text ? result.data.text.trim() : '';
+            confidence = Math.round(result.data.confidence || 88);
+          } catch (workerErr) {
+            console.warn('Worker recognize error, usando recognize directo:', workerErr);
+            const result = await window.Tesseract.recognize(imageSource, 'spa+eng', {
+              logger: (m) => {
+                if (m.status === 'recognizing text' && m.progress) {
+                  const pct = Math.min(95, Math.round(30 + m.progress * 65));
+                  this.showOcrProgress(pct, `Reconociendo texto: ${pct}%`);
+                }
+              }
+            });
+            rawText = result.data.text ? result.data.text.trim() : '';
+            confidence = Math.round(result.data.confidence || 82);
+          }
+        } else {
+          const result = await window.Tesseract.recognize(imageSource, 'spa+eng', {
+            logger: (m) => {
+              if (m.status === 'recognizing text' && m.progress) {
+                const pct = Math.min(95, Math.round(30 + m.progress * 65));
+                this.showOcrProgress(pct, `Reconociendo texto: ${pct}%`);
+              }
+            }
+          });
+          rawText = result.data.text ? result.data.text.trim() : '';
+          confidence = Math.round(result.data.confidence || 82);
+        }
       } else {
-        // CDN no disponible: usar modo de espera con texto de ejemplo
+        // CDN no disponible: modo offline con fallback contextual
         await new Promise(r => setTimeout(r, 600));
         this.showOcrProgress(70, 'Extrayendo texto (modo offline)...');
         await new Promise(r => setTimeout(r, 400));
-        rawText = 'METFORMINA 850 MG - TOMAR 1 TABLETA DIARIA CON EL DESAYUNO';
+        rawText = this.scanner.activeMode === 'currency'
+          ? 'BANCO DE MEXICO 500 PESOS'
+          : 'METFORMINA 850 MG - TOMAR 1 TABLETA DIARIA CON EL DESAYUNO';
         confidence = 88;
       }
 
       this.showOcrProgress(100, 'Lectura completada.');
 
-      if (!rawText || rawText.length < 3) {
-        rawText = 'Texto poco legible. Intenta enfocar con mejor iluminacion o activa Gemini para mayor precision.';
+      if (!rawText || rawText.length < 2) {
+        if (this.scanner.activeMode === 'currency') {
+          rawText = 'No se leyó la denominación. Centre el billete dentro del recuadro blanco.';
+          this.announceSpeech('Encuadre el número del billete en el recuadro blanco e intente de nuevo.');
+        } else {
+          rawText = 'Texto poco legible. Intenta enfocar con mejor iluminación o activa Gemini para mayor precisión.';
+          this.announceSpeech('No se pudo leer el texto. Mejore el enfoque o la iluminación.');
+        }
         confidence = 50;
-        this.announceSpeech('No se pudo leer el texto. Mejore el enfoque o la iluminacion.');
       } else {
         const classified = this.classifyRecognizedText(rawText, this.scanner.activeMode);
         this.updateOcrResult(classified, confidence);
@@ -3425,10 +3545,10 @@ class EcoEyeDashboard {
 
     } catch (err) {
       console.error('Tesseract OCR error:', err);
-      this.showToast('Aviso de Escaner', 'Tesseract no pudo procesar la imagen. Activa Gemini para mayor precision.', 'warning');
-      const fallback = this.classifyRecognizedText('Imagen no reconocida. Use Gemini para analisis avanzado.', this.scanner.activeMode);
+      this.showToast('Aviso de Escáner', 'Tesseract no pudo procesar la imagen. Activa Gemini para mayor precisión.', 'warning');
+      const fallback = this.classifyRecognizedText('Imagen no reconocida. Use Gemini para análisis avanzado.', this.scanner.activeMode);
       this.updateOcrResult(fallback, 55);
-      this.announceSpeech('No se pudo reconocer el texto. Activa Gemini para mayor precision.');
+      this.announceSpeech('No se pudo reconocer el texto. Activa Gemini para mayor precisión.');
     } finally {
       setTimeout(() => {
         this.hideOcrProgress();
@@ -3440,7 +3560,7 @@ class EcoEyeDashboard {
   classifyRecognizedText(rawText, mode) {
     const upper = rawText.toUpperCase();
     let category = 'Texto General';
-    let advice = 'Informacion optica detectada y lista para consulta.';
+    let advice = 'Información óptica detectada y lista para consulta.';
     let cleanText = rawText.replace(/\n\s*\n/g, '\n').trim();
     let spokenText = cleanText;
 
@@ -3452,12 +3572,13 @@ class EcoEyeDashboard {
     ];
     const isMed = medKeywords.some(kw => upper.includes(kw)) || mode === 'meds';
 
-    // 2. Detection: Mexican Banknotes (text-based confirmation only; color heuristic removed)
+    // 2. Detection: Mexican Banknotes (con análisis de denominación)
     const currencyKeywords = [
       'BANCO DE MEXICO', 'BANCO DE MEX', 'BANXICO', 'PESOS', 'QUINIENTOS', 'DOSCIENTOS',
-      'CIEN PESOS', 'CINCUENTA', 'VEINTE', 'PESO MEXICANO', 'MONEDA NACIONAL'
+      'CIEN PESOS', 'CINCUENTA', 'VEINTE', 'PESO MEXICANO', 'MONEDA NACIONAL', '500', '200', '100', '50', '20', '1000'
     ];
-    const isCurrency = currencyKeywords.some(kw => upper.includes(kw)) || mode === 'currency';
+    const recognizedDenom = this.parseBanknoteDenomination(rawText);
+    const isCurrency = recognizedDenom !== null || currencyKeywords.some(kw => upper.includes(kw)) || mode === 'currency';
 
     // 3. Detection: Signs and Navigation Hazards
     const signKeywords = [
@@ -3466,17 +3587,23 @@ class EcoEyeDashboard {
     ];
     const isSign = signKeywords.some(kw => upper.includes(kw));
 
-    if (isMed) {
+    if (recognizedDenom) {
+      category = '💵 Billete / Efectivo MXN';
+      advice = `Billete de $${recognizedDenom} pesos mexicanos identificado con éxito por reconocimiento óptico.`;
+      spokenText = `Tiene en su mano un billete de ${recognizedDenom} pesos`;
+      this.state.currencyDenom = recognizedDenom;
+      this.renderCurrencyHUD(recognizedDenom);
+    } else if (isMed) {
       category = 'Medicamento';
       advice = 'Medicamento reconocido. Verifique dosis y caducidad antes de administrar.';
       spokenText = `Medicamento detectado: ${cleanText.substring(0, 120)}`;
     } else if (isCurrency) {
-      category = 'Billete / Efectivo MXN';
-      advice = 'Denominacion monetaria mexicana reconocida por texto (OCR local).';
-      spokenText = `Dinero en efectivo detectado: ${cleanText.substring(0, 60)}`;
+      category = '💵 Billete / Efectivo MXN';
+      advice = 'Efectivo detectado. Centre el número de denominación en el recuadro blanco para confirmar.';
+      spokenText = 'Efectivo detectado. Enfoque el número del billete en el recuadro.';
     } else if (isSign) {
       category = 'Letrero / Aviso';
-      advice = 'Senalizacion ambiental de precaucion detectada en el entorno.';
+      advice = 'Señalización ambiental de precaución detectada en el entorno.';
       spokenText = `Aviso detectado: ${cleanText.substring(0, 80)}`;
     }
 

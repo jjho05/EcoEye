@@ -88,17 +88,17 @@ _COIN_PROFILES: Dict[float, Dict] = {
 
 # Aspect ratio window for Banxico banknotes (width / height in landscape orientation).
 # Physical: 130 mm wide x 65 mm tall -> ratio 2.0
-# Tolerance applied: 1.6 to 2.5 (covers angled shots, slight perspective distortion).
-_BANKNOTE_RATIO_MIN = 1.6
-_BANKNOTE_RATIO_MAX = 2.5
+# Tolerance applied: 1.4 to 2.7 (covers viewfinder crops, angled shots, perspective distortion).
+_BANKNOTE_RATIO_MIN = 1.4
+_BANKNOTE_RATIO_MAX = 2.7
 
 # Minimum fraction of matched pixels required AFTER the texture gate passes.
 # Raised from 0.12 to 0.18 to reduce hue-only false positives.
 _MIN_HUE_RATIO = 0.18
 
 # Minimum texture variance score: images below this are too uniform to be a banknote.
-# Banknotes have fine intaglio printing; a green wall is uniformly smooth.
-_MIN_TEXTURE_VARIANCE = 180.0
+# Banknotes have fine intaglio printing; a green wall is uniformly smooth (< 20).
+_MIN_TEXTURE_VARIANCE = 70.0
 
 
 def _compute_texture_variance(frame_np: Any) -> float:
@@ -198,6 +198,27 @@ class CurrencyDetector:
         if h == 0:
             return None
         aspect_ratio = w / h
+        if not (_BANKNOTE_RATIO_MIN <= aspect_ratio <= _BANKNOTE_RATIO_MAX):
+            # If a full-frame camera photo (4:3, 16:9, or mobile portrait) was supplied,
+            # crop the central region of interest corresponding to the banknote reticle (1.85:1).
+            target_ratio = 1.85
+            if aspect_ratio < target_ratio:
+                crop_w = int(w * 0.85)
+                crop_h = int(crop_w / target_ratio)
+            else:
+                crop_h = int(h * 0.85)
+                crop_w = int(crop_h * target_ratio)
+
+            if crop_w > 10 and crop_h > 10 and crop_w <= w and crop_h <= h:
+                y0 = (h - crop_h) // 2
+                x0 = (w - crop_w) // 2
+                frame = frame[y0:y0 + crop_h, x0:x0 + crop_w]
+                h, w = frame.shape[:2]
+                total_pixels = h * w
+                aspect_ratio = w / h
+            else:
+                return None
+
         if not (_BANKNOTE_RATIO_MIN <= aspect_ratio <= _BANKNOTE_RATIO_MAX):
             logger.debug(
                 "[CURRENCY] Rejected by aspect ratio gate: ratio=%.2f not in [%.1f, %.1f]",

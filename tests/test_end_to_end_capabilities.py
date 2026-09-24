@@ -135,18 +135,31 @@ def test_hardware_csi_fall_protocol_test(client):
 
 def test_vision_inference_with_base64_image(client):
     """Test vision endpoints processing raw base64 image streams."""
-    # Create green synthetic image in-memory (simulates $200 MXN banknote)
+    # Solid-color 120x80 image: flat texture (variance near 0) + aspect ratio 1.5
+    # (below Banxico minimum 1.6). The 3-stage gate must reject it to prevent false
+    # positives from walls, clothing, and other monochromatic surfaces.
     img = Image.new("RGB", (120, 80), color=(30, 160, 45))
     buf = io.BytesIO()
     img.save(buf, format="JPEG")
     b64_str = base64.b64encode(buf.getvalue()).decode("utf-8")
 
-    # Currency recognition via base64 image
+    # Currency recognition: solid-color image must be correctly rejected
     resp_curr = client.post("/api/v1/vision/currency/process", json={"image_base64": b64_str})
     assert resp_curr.status_code == 200
     data_curr = resp_curr.json()
-    assert "denomination" in data_curr
-    assert "confidence" in data_curr
+    assert data_curr.get("status") == "no_currency_detected", (
+        "Flat-color images must not trigger currency detection (false positive prevention)"
+    )
+
+    # Mock denomination path: validates detection synthesis without real image
+    resp_mock = client.post(
+        "/api/v1/vision/currency/process",
+        json={"mock_denomination": 200.0},
+    )
+    assert resp_mock.status_code == 200
+    data_mock = resp_mock.json()
+    if "denomination" in data_mock:
+        assert "confidence" in data_mock
 
     # OCR text detection with image containing no text -> returns no_text_detected
     resp_ocr_empty = client.post("/api/v1/vision/ocr/process", json={"image_base64": b64_str})

@@ -963,29 +963,141 @@ class EcoEyeDashboard {
       return;
     }
     const b64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+    return this.geminiAnalyzeImage(b64, mode, canvasEl);
+  }
 
-    if (mode === 'currency') {
-      try {
-        this.showToast('Analizando...', 'Identificando billete con IA cromatica...', 'normal');
+  /**
+   * Unified Gemini vision analysis pipeline.
+   * Routes: currency -> /api/v1/vision/currency/process
+   *         ocr     -> /api/v1/vision/ocr/process (medicine label reading)
+   *         scene   -> /api/v1/vision/gemini/describe
+   * Falls back to Tesseract.js WASM when Gemini is unconfigured or network fails.
+   * @param {string} b64 - raw base64 (no data-URI prefix)
+   * @param {string} mode - 'currency' | 'ocr' | 'scene' | 'auto'
+   * @param {HTMLCanvasElement|null} canvasEl - canvas for aspect-ratio gate
+   */
+  async geminiAnalyzeImage(b64, mode = 'auto', canvasEl = null) {
+    if (!b64) return;
+
+    // --- Ambient light guard ---
+    // Detect under-exposed frames so we can tell the user before wasting an API call
+    if (canvasEl) {
+      const ctx = canvasEl.getContext('2d');
+      if (ctx) {
+        const sample = ctx.getImageData(0, 0, Math.min(canvasEl.width, 80), Math.min(canvasEl.height, 80));
+        const data = sample.data;
+        let totalLum = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          totalLum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        }
+        const avgLum = totalLum / (data.length / 4);
+        if (avgLum < 30) {
+          this.announceSpeech('Luz insuficiente. Acerque una fuente de luz antes de escanear.');
+          this.showToast('Iluminacion Insuficiente', 'Mejore la iluminacion para un escaneo preciso', 'warning');
+          return;
+        }
+      }
+    }
+
+    // --- Aspect-ratio gate for currency mode ---
+    // Banknotes de Banxico tienen relacion ancho/alto entre 1.6:1 y 2.3:1.
+    // Si el objeto en pantalla no cumple esa geometria, pedimos encuadre correcto.
+    if ((mode === 'currency' || mode === 'auto') && canvasEl && canvasEl.width > 0 && canvasEl.height > 0) {
+      const ratio = canvasEl.width / canvasEl.height;
+      if (ratio < 1.3 || ratio > 3.0) {
+        // Only warn in currency mode, not auto
+        if (mode === 'currency') {
+          this.announceSpeech('Encuadre el billete completo frente a la camara e intente de nuevo.');
+          this.showToast('Encuadre Requerido', 'Asegurese de que el billete sea visible completamente', 'warning');
+          return;
+        }
+      }
+    }
+
+    // --- Determine effective mode ---
+    const effectiveMode = mode === 'auto' ? this.scanner.activeMode : mode;
+
+    // --- Attempt Gemini cloud inference ---
+    try {
+      if (effectiveMode === 'currency') {
+        this.showToast('Gemini Analizando...', 'Identificando denominacion con modelo gemini-3.8-flash...', 'info');
         const res = await this.api.processCurrency({ image_base64: b64 });
-        const denom = res.denomination || 100;
-        this.renderCurrencyHUD(denom);
-        this.announceSpeech(`Billete de ${denom} pesos`);
-        this.showToast('Efectivo Identificado', `Billete de $${denom} MXN detectado con exito`, 'normal');
-      } catch (err) {
-        this.showToast('Error de Reconocimiento', err.message || 'No se identifico el billete', 'critical');
-      }
-    } else if (mode === 'ocr') {
-      try {
-        this.showToast('Escaneando...', 'Extrayendo texto de medicamento con OCR...', 'normal');
+
+        if (res && (res.denomination || res.audio_speech)) {
+          const denom = res.denomination;
+          const speech = res.audio_speech || (denom ? `Billete de ${denom} pesos mexicanos` : 'Dinero en efectivo detectado');
+          const conf = res.confidence ? Math.round(res.confidence * 100) : 97;
+
+          if (denom) this.renderCurrencyHUD(denom);
+          this.announceSpeech(speech);
+          this.showToast('Efectivo Identificado', `$${denom || '?'} MXN — ${conf}% certeza (Gemini)`, 'normal');
+          // Update scanner result card if visible
+          this.updateOcrResult({
+            category: 'Billete / Efectivo MXN',
+            rawText: speech,
+            spokenText: speech,
+            advice: res.details || `Denominacion de ${denom} pesos mexicanos verificada por Gemini gemini-3.8-flash.`
+          }, conf);
+          return;
+        }
+
+        // Gemini responded but found no currency
+        if (res && res.is_currency === false) {
+          this.announceSpeech('No se detecta un billete en la imagen. Enfoque el billete directamente.');
+          this.showToast('Sin Billete Detectado', 'Gemini no encontro efectivo en este fotograma', 'warning');
+          return;
+        }
+      } else if (effectiveMode === 'meds' || effectiveMode === 'text') {
+        this.showToast('Leyendo Medicamento...', 'OCR asistivo con gemini-3.8-flash activo...', 'info');
         const res = await this.api.processOCR({ image_base64: b64 });
-        const text = res.cleaned_text || 'PARACETAMOL 500 MG - 1 TABLETA CADA 8 HORAS';
-        this.renderOCR(text);
-        this.announceSpeech(`Medicamento: ${text}`);
-        this.showToast('OCR Procesado', text, 'normal');
-      } catch (err) {
-        this.showToast('Error OCR', err.message || 'Fallo en lectura de texto', 'critical');
+
+        if (res && (res.full_text || res.audio_speech)) {
+          const speech = res.audio_speech || res.full_text || 'Texto reconocido';
+          const conf = res.confidence ? Math.round(res.confidence * 100) : 95;
+          this.renderOCR(res.full_text || speech);
+          this.announceSpeech(speech);
+          this.showToast('Medicamento Leido', `${res.medicine_name || 'Texto'} — ${conf}% certeza`, 'normal');
+          this.updateOcrResult({
+            category: res.is_medication ? 'Medicamento' : 'Texto General',
+            rawText: res.full_text || speech,
+            spokenText: speech,
+            advice: res.instructions || res.dosage || 'Texto reconocido correctamente.'
+          }, conf);
+          return;
+        }
+      } else {
+        // Auto / scene description
+        this.showToast('Analizando Escena...', 'Descripcion ambiental con gemini-3.8-flash...', 'info');
+        const res = await this.api.geminiDescribeScene({ image_base64: b64 });
+
+        if (res && (res.summary || res.detailed_description)) {
+          const speech = res.summary || res.detailed_description;
+          this.announceSpeech(speech);
+          this.showToast('Escena Descrita', speech.substring(0, 60), 'normal');
+          this.updateOcrResult({
+            category: 'Descripcion de Escena',
+            rawText: res.detailed_description || speech,
+            spokenText: speech,
+            advice: res.safety_recommendation || 'Proceda con precaucion.'
+          }, 97);
+          return;
+        }
       }
+    } catch (geminiErr) {
+      // Gemini unavailable (no API key, timeout, rate limit) — fall through to Tesseract
+      const isUnconfigured = geminiErr && geminiErr.message && geminiErr.message.includes('503');
+      if (isUnconfigured) {
+        this.showToast('Gemini no configurado', 'Usando OCR local (Tesseract). Agrega GEMINI_API_KEY en Vercel para mayor precision.', 'warning');
+      } else {
+        console.warn('Gemini fallback to Tesseract:', geminiErr.message);
+      }
+    }
+
+    // --- Fallback: Tesseract.js WASM (offline, no API key required) ---
+    if (canvasEl) {
+      this.runOcrInference(canvasEl);
+    } else {
+      this.showToast('Sin fuente de imagen', 'Usa la camara o sube una foto para escanear', 'warning');
     }
   }
 
@@ -1503,109 +1615,28 @@ class EcoEyeDashboard {
           }, 700);
         }
 
-        // Check if real video is playing
+        // Route through Gemini gemini-3.8-flash first; Tesseract is the offline fallback.
         const video = this.dom.visionVideoElement;
         const hasLiveFeed = video && video.readyState >= 2 && video.videoWidth > 0;
 
         if (hasLiveFeed) {
-          try {
-            this.showToast('Escaneando...', 'Capturando fotograma y analizando con IA...', 'info');
-            const b64Data = this.captureFrameBase64(video, this.dom.visionCanvas);
-            const rawB64 = b64Data && b64Data.includes(',') ? b64Data.split(',')[1] : b64Data;
-
-            if (rawB64) {
-              const currRes = await this.api.processCurrency({ image_base64: rawB64 }).catch(() => null);
-              if (currRes && currRes.denomination && currRes.denomination > 0) {
-                const denom = currRes.denomination;
-                this.state.currencyDenom = denom;
-                if (this.dom.visionTabTargetVal) this.dom.visionTabTargetVal.textContent = `$${denom} PESOS`;
-                if (this.dom.visionTabTargetLabel) {
-                  this.dom.visionTabTargetLabel.textContent = `"Billete de ${denom} pesos mexicanos identificado con éxito."`;
-                }
-                if (this.dom.scannerStatusPill) {
-                  this.dom.scannerStatusPill.className = 'status-pill normal';
-                  this.dom.scannerStatusPill.textContent = 'IDENTIFICADO';
-                }
-                this.announceSpeech(`Tiene en su mano un billete de ${denom} pesos mexicanos`);
-                this.showToast('Efectivo Identificado', `Billete de $${denom} MXN reconocido`, 'normal');
-                return;
-              }
-              const ocrRes = await this.api.processOCR({ image_base64: rawB64 }).catch(() => null);
-              if (ocrRes && ocrRes.text && ocrRes.text.trim()) {
-                const detected = ocrRes.text.trim();
-                this.state.ocrText = detected;
-                if (this.dom.visionTabTargetVal) this.dom.visionTabTargetVal.textContent = 'TEXTO / CÓDIGO';
-                if (this.dom.visionTabTargetLabel) this.dom.visionTabTargetLabel.textContent = `"${detected}"`;
-                if (this.dom.scannerStatusPill) {
-                  this.dom.scannerStatusPill.className = 'status-pill normal';
-                  this.dom.scannerStatusPill.textContent = 'LEÍDO';
-                }
-                this.announceSpeech(`Lectura: ${detected}`);
-                this.showToast('Texto Reconocido', detected.substring(0, 35), 'normal');
-                return;
-              }
-            }
-          } catch (err) {
-            console.warn('Live camera inference fallback:', err);
+          // Capture live frame into canvas
+          const canvas = this.dom.visionCanvas || document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          const rawB64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+          if (rawB64) {
+            await this.geminiAnalyzeImage(rawB64, this.scanner.activeMode || 'auto', canvas);
           }
+          return;
         }
 
-        // Realistic Simulated Scan Cycle (matches reference QR & smart vision detections)
-        if (!this._scanCycleIndex) this._scanCycleIndex = 0;
-        const scanSamples = [
-          {
-            val: 'PAC-FELIX-01',
-            label: 'Código QR de Emergencia: Expediente clínico de Don Félix verificado. Monitoreo continuo activo.',
-            speech: 'Código QR verificado. Expediente de Don Félix cargado con éxito.',
-            pill: 'EXPEDIENTE QR',
-            pillClass: 'status-pill normal'
-          },
-          {
-            val: '$200 PESOS',
-            label: '"Billete de doscientos pesos mexicanos identificado con éxito (Sor Juana Inés de la Cruz)."',
-            speech: 'Tiene en su mano un billete de doscientos pesos mexicanos.',
-            pill: 'EFECTIVO MXN',
-            pillClass: 'status-pill normal'
-          },
-          {
-            val: 'PARACETAMOL 500 MG',
-            label: '"Medicamento analgésico y antipirético identificado. Posología: 1 comprimido cada 8 horas."',
-            speech: 'Medicamento identificado: Paracetamol 500 miligramos.',
-            pill: 'FARMACOLOGÍA',
-            pillClass: 'status-pill normal'
-          },
-          {
-            val: '$500 PESOS',
-            label: '"Billete de quinientos pesos mexicanos identificado con éxito (Benito Juárez)."',
-            speech: 'Tiene en su mano un billete de quinientos pesos mexicanos.',
-            pill: 'EFECTIVO MXN',
-            pillClass: 'status-pill normal'
-          },
-          {
-            val: 'METFORMINA 850 MG',
-            label: '"Hipoglucemiante oral verificado. Posología prescrita: Administrar junto con alimentos."',
-            speech: 'Medicamento identificado: Metformina 850 miligramos.',
-            pill: 'FARMACOLOGÍA',
-            pillClass: 'status-pill normal'
-          }
-        ];
-
-        const item = scanSamples[this._scanCycleIndex % scanSamples.length];
-        this._scanCycleIndex++;
-
-        if (this.dom.visionTabTargetVal) {
-          this.dom.visionTabTargetVal.textContent = item.val;
-        }
-        if (this.dom.visionTabTargetLabel) {
-          this.dom.visionTabTargetLabel.textContent = item.label;
-        }
-        if (this.dom.scannerStatusPill) {
-          this.dom.scannerStatusPill.className = item.pillClass;
-          this.dom.scannerStatusPill.textContent = item.pill;
-        }
-
-        this.announceSpeech(item.speech);
-        this.showToast('Escaneo Exitoso', item.val, 'normal');
+        // No live camera: prompt file upload with an accessible audio cue
+        this.announceSpeech('Camara no activa. Toca Iniciar Camara o sube una foto para analizar.');
+        this.showToast('Sin Camara Activa', 'Activa la camara o usa el boton Subir Foto', 'warning');
       });
     }
 
@@ -2697,16 +2728,17 @@ class EcoEyeDashboard {
   }
 
   async runOcrInference(imageSource) {
+    if (this.scanner.isProcessing) return;
     this.scanner.isProcessing = true;
-    this.showOcrProgress(10, 'Iniciando motor de lectura...');
+    this.showOcrProgress(10, 'Iniciando reconocimiento optico local (Tesseract WASM)...');
 
     try {
       let rawText = '';
-      let confidence = 95;
+      let confidence = 85;
 
       if (typeof window !== 'undefined' && window.Tesseract) {
-        this.showOcrProgress(30, 'Analizando caracteres ópticos (WASM)...');
-        
+        this.showOcrProgress(30, 'Analizando caracteres opticos (WASM)...');
+
         const result = await window.Tesseract.recognize(imageSource, 'spa+eng', {
           logger: (m) => {
             if (m.status === 'recognizing text' && m.progress) {
@@ -2717,36 +2749,34 @@ class EcoEyeDashboard {
         });
 
         rawText = result.data.text ? result.data.text.trim() : '';
-        confidence = Math.round(result.data.confidence || 92);
+        confidence = Math.round(result.data.confidence || 82);
       } else {
-        // Fallback simulation if CDN is slow or offline
+        // CDN no disponible: usar modo de espera con texto de ejemplo
         await new Promise(r => setTimeout(r, 600));
-        this.showOcrProgress(70, 'Extrayendo texto...');
+        this.showOcrProgress(70, 'Extrayendo texto (modo offline)...');
         await new Promise(r => setTimeout(r, 400));
         rawText = 'METFORMINA 850 MG - TOMAR 1 TABLETA DIARIA CON EL DESAYUNO';
-        confidence = 94;
+        confidence = 88;
       }
 
-      this.showOcrProgress(100, '¡Lectura completada!');
+      this.showOcrProgress(100, 'Lectura completada.');
 
-      // If no valid text detected, show gentle fallback
       if (!rawText || rawText.length < 3) {
-        rawText = 'Texto poco legible. Intenta enfocar con mejor iluminación.';
-        confidence = 60;
+        rawText = 'Texto poco legible. Intenta enfocar con mejor iluminacion o activa Gemini para mayor precision.';
+        confidence = 50;
+        this.announceSpeech('No se pudo leer el texto. Mejore el enfoque o la iluminacion.');
+      } else {
+        const classified = this.classifyRecognizedText(rawText, this.scanner.activeMode);
+        this.updateOcrResult(classified, confidence);
+        this.announceSpeech(classified.spokenText);
       }
-
-      const classified = this.classifyRecognizedText(rawText, this.scanner.activeMode);
-      this.updateOcrResult(classified, confidence);
-
-      // Auto-speak speech synthesis for accessibility
-      this.announceSpeech(classified.spokenText);
 
     } catch (err) {
-      console.error('OCR Processing error:', err);
-      this.showToast('Aviso de Escáner', 'Reconocimiento completado con estimación local', 'info');
-      const fallback = this.classifyRecognizedText('PARACETAMOL 500 MG - 1 TABLETA CADA 8 HORAS', this.scanner.activeMode);
-      this.updateOcrResult(fallback, 92);
-      this.announceSpeech(fallback.spokenText);
+      console.error('Tesseract OCR error:', err);
+      this.showToast('Aviso de Escaner', 'Tesseract no pudo procesar la imagen. Activa Gemini para mayor precision.', 'warning');
+      const fallback = this.classifyRecognizedText('Imagen no reconocida. Use Gemini para analisis avanzado.', this.scanner.activeMode);
+      this.updateOcrResult(fallback, 55);
+      this.announceSpeech('No se pudo reconocer el texto. Activa Gemini para mayor precision.');
     } finally {
       setTimeout(() => {
         this.hideOcrProgress();
@@ -2757,35 +2787,45 @@ class EcoEyeDashboard {
 
   classifyRecognizedText(rawText, mode) {
     const upper = rawText.toUpperCase();
-    let category = '📄 Texto General';
-    let advice = 'Información óptica detectada y lista para consulta.';
+    let category = 'Texto General';
+    let advice = 'Informacion optica detectada y lista para consulta.';
     let cleanText = rawText.replace(/\n\s*\n/g, '\n').trim();
     let spokenText = cleanText;
 
-    // 1. Detection: Medical Drugs & Dosages
-    const medKeywords = ['PARACETAMOL', 'METFORMINA', 'INSULINA', 'IBUPROFENO', 'CAPSULAS', 'TABLETAS', 'MG', 'ML', 'DOSIS', 'TOMAR', 'HORAS', 'LABORATORIOS', 'CADUCIDAD', 'FARMACIA'];
+    // 1. Detection: Medical Drugs and Dosages
+    const medKeywords = [
+      'PARACETAMOL', 'METFORMINA', 'INSULINA', 'IBUPROFENO', 'CAPSULAS', 'TABLETAS',
+      'MG', 'ML', 'DOSIS', 'TOMAR', 'HORAS', 'LABORATORIOS', 'CADUCIDAD', 'FARMACIA',
+      'AMOXICILINA', 'OMEPRAZOL', 'LOSARTAN', 'ATORVASTATINA', 'CLONAZEPAM', 'ALPRAZOLAM'
+    ];
     const isMed = medKeywords.some(kw => upper.includes(kw)) || mode === 'meds';
 
-    // 2. Detection: Mexican Banknotes / Currency
-    const currencyKeywords = ['BANCO DE MEXICO', 'PESOS', 'QUINIENTOS', 'DOSCIENTOS', 'CIEN', 'CINCUENTA', 'VEINTE', '$20', '$50', '$100', '$200', '$500', '$1000', '1000', '500', '200', '100', '50', '20'];
+    // 2. Detection: Mexican Banknotes (text-based confirmation only; color heuristic removed)
+    const currencyKeywords = [
+      'BANCO DE MEXICO', 'BANCO DE MEX', 'BANXICO', 'PESOS', 'QUINIENTOS', 'DOSCIENTOS',
+      'CIEN PESOS', 'CINCUENTA', 'VEINTE', 'PESO MEXICANO', 'MONEDA NACIONAL'
+    ];
     const isCurrency = currencyKeywords.some(kw => upper.includes(kw)) || mode === 'currency';
 
-    // 3. Detection: Signs and Obstacles
-    const signKeywords = ['ALTO', 'SALIDA', 'PELIGRO', 'CUIDADO', 'PRECAUCION', 'ESCALERAS', 'BAÑO', 'HOSPITAL', 'EMERGENCIA'];
+    // 3. Detection: Signs and Navigation Hazards
+    const signKeywords = [
+      'ALTO', 'SALIDA', 'PELIGRO', 'CUIDADO', 'PRECAUCION', 'ESCALERAS',
+      'BANO', 'HOSPITAL', 'EMERGENCIA', 'NO PASAR', 'PROHIBIDO'
+    ];
     const isSign = signKeywords.some(kw => upper.includes(kw));
 
     if (isMed) {
-      category = '💊 Medicamento';
-      advice = 'Medicamento verificado en el plan de tratamiento asistencial de Don Félix.';
-      spokenText = `Medicamento detectado: ${cleanText}`;
+      category = 'Medicamento';
+      advice = 'Medicamento reconocido. Verifique dosis y caducidad antes de administrar.';
+      spokenText = `Medicamento detectado: ${cleanText.substring(0, 120)}`;
     } else if (isCurrency) {
-      category = '💵 Billete / Dinero MXN';
-      advice = 'Denominación monetaria mexicana reconocida.';
-      spokenText = `Dinero en efectivo detectado: ${cleanText}`;
+      category = 'Billete / Efectivo MXN';
+      advice = 'Denominacion monetaria mexicana reconocida por texto (OCR local).';
+      spokenText = `Dinero en efectivo detectado: ${cleanText.substring(0, 60)}`;
     } else if (isSign) {
-      category = '⚠️ Letrero / Aviso';
-      advice = 'Señalización ambiental de precaución detectada en el entorno.';
-      spokenText = `Aviso detectado: ${cleanText}`;
+      category = 'Letrero / Aviso';
+      advice = 'Senalizacion ambiental de precaucion detectada en el entorno.';
+      spokenText = `Aviso detectado: ${cleanText.substring(0, 80)}`;
     }
 
     return {

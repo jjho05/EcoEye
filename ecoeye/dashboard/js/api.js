@@ -132,6 +132,13 @@
       });
     }
 
+    async geminiDescribeScene(payload) {
+      return this._fetch('/api/v1/vision/gemini/describe', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    }
+
     async recordGlucose(valueMgDl, mealContext = 'ayunas', sensorId = 'cgm-dexcom-g7') {
       return this._fetch('/api/v1/readings/glucose', {
         method: 'POST',

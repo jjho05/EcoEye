@@ -99,7 +99,7 @@ class AuthManager:
     def authenticate(self, username: str, secret: str) -> Optional[UserProfile]:
         """Verify user credentials against stored hashes."""
         uname = username.lower().strip()
-        if uname in ("jesus.olvera", "jesus", "olvera"):
+        if uname in ("jesus.olvera", "jesus", "olvera", "familiar"):
             uname = "cuidador"
 
         user_entry = self._user_store.get(uname)

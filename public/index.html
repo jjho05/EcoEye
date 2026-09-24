@@ -76,7 +76,7 @@
         <div id="user-avatar-circle" class="user-avatar-circle">J</div>
         <div class="user-meta">
           <span id="header-user-name" class="user-name-text">Jesús Olvera</span>
-          <span id="header-user-role" class="user-role-label">Familiar / Cuidador Principal</span>
+          <span id="header-user-role" class="user-role-label">Familiar</span>
         </div>
         <svg class="dropdown-chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="6 9 12 15 18 9"></polyline>
@@ -818,56 +818,23 @@
           Acceso al Sistema EcoEye
         </h2>
         <span style="font-size:0.85rem; color:var(--text-secondary); display:block; margin-top:0.25rem;">
-          Selecciona tu perfil de usuario o ingresa tus credenciales de acceso:
+          Acceso personal de la plataforma:
         </span>
       </div>
 
       <!-- Human Role Selection Cards (Vector SVGs) -->
-      <div class="role-picker-grid">
+      <div class="role-picker-grid" style="grid-template-columns: 1fr;">
         <button class="role-card-btn quick-role-btn" data-user="cuidador" data-pass="familiar2026!">
           <div class="role-card-meta">
             <div class="role-card-avatar" style="border-color:var(--brand-primary); color:var(--brand-primary);">
               <span style="font-weight:800; font-size:1.05rem;">J</span>
             </div>
             <div>
-              <span class="role-card-name">Jesús Olvera (Familiar / Cuidador)</span>
-              <span class="role-card-desc">Alertas de caídas, visión asistiva y cuidado del hogar</span>
+              <span class="role-card-name">Jesús Olvera (Familiar)</span>
+              <span class="role-card-desc">Alertas de caídas, visión asistiva y acompañamiento</span>
             </div>
           </div>
           <span class="status-pill info">INGRESAR</span>
-        </button>
-
-        <button class="role-card-btn quick-role-btn" data-user="medico" data-pass="clinica2026!">
-          <div class="role-card-meta">
-            <div class="role-card-avatar" style="border-color:var(--brand-cyan); color:var(--brand-cyan);">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"></path>
-                <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"></path>
-                <circle cx="20" cy="10" r="2"></circle>
-              </svg>
-            </div>
-            <div>
-              <span class="role-card-name">Dra. Carmen Santos (Médico Especialista)</span>
-              <span class="role-card-desc">Expediente clínico, glucosa y signos vitales</span>
-            </div>
-          </div>
-          <span class="status-pill normal">INGRESAR</span>
-        </button>
-
-        <button class="role-card-btn quick-role-btn" data-user="admin" data-pass="ecoeye2026!">
-          <div class="role-card-meta">
-            <div class="role-card-avatar" style="border-color:var(--status-warning); color:var(--status-warning);">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-              </svg>
-            </div>
-            <div>
-              <span class="role-card-name">Ing. Administrador (Hardware)</span>
-              <span class="role-card-desc">Calibración ToF, radar CSI y diagnóstico edge</span>
-            </div>
-          </div>
-          <span class="status-pill warning">INGRESAR</span>
         </button>
       </div>
 
@@ -875,7 +842,7 @@
       <div style="margin-top:1.25rem; border-top:1px solid var(--border-subtle); padding-top:1rem;">
         <span style="font-size:0.82rem; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:0.6rem;">O escribe tus credenciales de acceso:</span>
         <form id="auth-form" style="display:flex; flex-direction:column; gap:0.75rem;" onsubmit="return false;">
-          <input id="login-username" type="text" placeholder="Usuario (ej. jesus.olvera, medico, admin)" class="form-input-clean" autocomplete="username" />
+          <input id="login-username" type="text" placeholder="Usuario (ej. jesus.olvera)" class="form-input-clean" autocomplete="username" />
           <input id="login-password" type="password" placeholder="Contraseña" class="form-input-clean" autocomplete="current-password" />
           <button id="btn-login-submit" class="btn-action btn-primary-action" style="width:100%; justify-content:center;">
             Iniciar Sesión

@@ -162,15 +162,15 @@ def test_multi_view_spa_structure(isolated_app):
 
 
 def test_auth_modal_and_judge_macros(isolated_app):
-    """Verify authentication modal, judge quick-access buttons, and user badge exist."""
+    """Verify authentication modal, personal access button, and user badge exist."""
     response = isolated_app.get("/")
     assert response.status_code == 200
     html = response.text
 
     assert 'id="auth-modal"' in html
-    assert 'data-user="medico"' in html
     assert 'data-user="cuidador"' in html
-    assert 'data-user="admin"' in html
+    assert 'data-user="medico"' not in html
+    assert 'data-user="admin"' not in html
     assert 'id="btn-login-submit"' in html
     assert 'id="user-profile-widget"' in html
     assert 'id="btn-header-logout"' in html

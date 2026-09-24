@@ -421,8 +421,13 @@ class EcoEyeDashboard {
 
   setUserSession(user) {
     this.currentUser = user;
-    const displayName = user.full_name || user.display_name || user.username || 'Usuario';
-    const roleLabel = user.role_label || user.role_title || user.role || 'Personal Autorizado';
+    let displayName = user.full_name || user.display_name || user.username || 'Jesús Olvera';
+    displayName = displayName.replace(/\s*\(Cuidador Principal\)/i, '').trim();
+
+    let roleLabel = user.role_label || user.role_title || user.role || 'Familiar';
+    if (roleLabel.includes('Cuidador') || roleLabel.toLowerCase().includes('caregiver')) {
+      roleLabel = 'Familiar';
+    }
 
     if (this.dom.headerUserName) this.dom.headerUserName.textContent = displayName;
     if (this.dom.headerUserRole) this.dom.headerUserRole.textContent = roleLabel;
@@ -430,17 +435,8 @@ class EcoEyeDashboard {
     if (this.dom.userAvatarCircle) {
       const initial = displayName.charAt(0).toUpperCase();
       this.dom.userAvatarCircle.textContent = initial;
-
-      if (user.role === 'clinician' || user.role === 'medico') {
-        this.dom.userAvatarCircle.style.borderColor = 'var(--brand-cyan)';
-        this.dom.userAvatarCircle.style.color = 'var(--brand-cyan)';
-      } else if (user.role === 'admin') {
-        this.dom.userAvatarCircle.style.borderColor = 'var(--status-warning)';
-        this.dom.userAvatarCircle.style.color = 'var(--status-warning)';
-      } else {
-        this.dom.userAvatarCircle.style.borderColor = 'var(--brand-primary)';
-        this.dom.userAvatarCircle.style.color = 'var(--brand-primary)';
-      }
+      this.dom.userAvatarCircle.style.borderColor = 'var(--brand-primary)';
+      this.dom.userAvatarCircle.style.color = 'var(--brand-primary)';
     }
   }
 
@@ -753,7 +749,7 @@ class EcoEyeDashboard {
 
     if (this.dom.fallStatusExplanation) {
       if (isAlarm) {
-        this.dom.fallStatusExplanation.textContent = 'Atencion: Se detecto un impacto o caida. Las gafas estan activando aviso sonoro y notificando al cuidador.';
+        this.dom.fallStatusExplanation.textContent = 'Atencion: Se detecto un impacto o caida. Las gafas estan activando aviso sonoro y notificando a la persona de contacto.';
       } else {
         this.dom.fallStatusExplanation.textContent = 'El paciente se encuentra en reposo normal. En caso de impacto, las gafas y el sistema notificaran de inmediato.';
       }
@@ -812,7 +808,7 @@ class EcoEyeDashboard {
           mod: 'PROTECCION',
           badge: 'critical',
           desc: 'Posible Caida Detectada',
-          detail: 'Alerta enviada al cuidador y aviso en gafas',
+          detail: 'Alerta enviada a la persona de contacto y aviso en gafas',
           time: this.formatTimestamp(f.timestamp),
           ts: this.getNumericTs(f.timestamp),
         });

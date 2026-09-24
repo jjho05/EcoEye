@@ -57,6 +57,7 @@ class EcoEyeDashboard {
     this.initUserProfileCard();
     this.initNeonAnalytics();
     this.initScanner();
+    this.initObstacleDetection();
     this.pollBackend();
     setInterval(() => this.pollBackend(), 2500);
   }
@@ -2562,7 +2563,175 @@ class EcoEyeDashboard {
     }
   }
 
+  initObstacleDetection() {
+    const btnStart  = document.getElementById('btn-start-obstacle');
+    const btnStop   = document.getElementById('btn-stop-obstacle');
+    const pill      = document.getElementById('obstacle-engine-pill');
+    const loadWrap  = document.getElementById('obstacle-load-bar-wrap');
+    const loadBar   = document.getElementById('obstacle-load-bar');
+    const loadPct   = document.getElementById('obstacle-load-pct');
+    const loadStat  = document.getElementById('obstacle-load-status');
+    const backLabel = document.getElementById('obs-backend-label');
+    const fpsLabel  = document.getElementById('obs-fps-label');
+    const cntLabel  = document.getElementById('obs-count-label');
+
+    if (!btnStart) return; // obstacle card not in DOM
+
+    let engine = null;
+    let lastAudioAt = 0;
+    let fpsFrames = 0;
+    let fpsTimer = null;
+
+    const setPill = (text, cls) => {
+      if (!pill) return;
+      pill.textContent = text;
+      pill.className = `status-pill ${cls}`;
+    };
+
+    const setZone = (sectorId, label, zone) => {
+      const card  = document.getElementById(`obs-zone-${sectorId}`);
+      const lbl   = document.getElementById(`obs-label-${sectorId}`);
+      const dist  = document.getElementById(`obs-dist-${sectorId}`);
+      if (!card) return;
+      const colorMap = {
+        danger:  'rgba(239,68,68,0.18)',
+        caution: 'rgba(245,158,11,0.18)',
+        safe:    'rgba(16,185,129,0.10)',
+        unknown: 'transparent',
+      };
+      const textMap = {
+        danger:  '#ef4444',
+        caution: '#f59e0b',
+        safe:    '#10b981',
+        unknown: 'var(--text-muted)',
+      };
+      card.style.background = colorMap[zone] || 'transparent';
+      if (lbl) { lbl.textContent = label || '--'; lbl.style.color = textMap[zone] || 'var(--text-main)'; }
+      if (dist) { dist.textContent = zone === 'danger' ? 'CERCA' : zone === 'caution' ? 'MEDIO' : zone === 'safe' ? 'LIBRE' : 'sin datos'; }
+    };
+
+    const resetZones = () => {
+      ['left','center','right'].forEach(s => setZone(s, '--', 'unknown'));
+    };
+
+    const onResult = (payload) => {
+      // Engine lifecycle events
+      if (payload.engineEvent) {
+        if (payload.type === 'status') {
+          if (loadWrap) loadWrap.style.display = 'block';
+          if (loadStat) loadStat.textContent = payload.message || '';
+          if (loadPct)  loadPct.textContent  = `${payload.progress || 0}%`;
+          if (loadBar)  loadBar.style.width  = `${payload.progress || 0}%`;
+        }
+        if (payload.type === 'ready') {
+          if (loadWrap) loadWrap.style.display = 'none';
+          if (backLabel) backLabel.textContent = `Backend: ${payload.backendMode || 'wasm'}`;
+          setPill('Listo', 'normal');
+          engine.start();
+          setPill('Activo', 'normal');
+          // FPS counter
+          fpsFrames = 0;
+          clearInterval(fpsTimer);
+          fpsTimer = setInterval(() => {
+            if (fpsLabel) fpsLabel.textContent = `${fpsFrames} fps`;
+            fpsFrames = 0;
+          }, 1000);
+        }
+        if (payload.type === 'error') {
+          if (loadWrap) loadWrap.style.display = 'none';
+          setPill('Error', 'critical');
+          this.showToast('Vision Engine', payload.message || 'Error al cargar modelos.', 'critical');
+        }
+        return;
+      }
+
+      // Detection result
+      fpsFrames++;
+      const dets = payload.detections || [];
+      if (cntLabel) cntLabel.textContent = `${dets.length} objetos`;
+
+      // Split detections into left / center / right thirds
+      const video = this.dom.visionVideoElement;
+      const vidW = video ? video.videoWidth || 640 : 640;
+      const leftDets   = dets.filter(d => ((d.x1 + d.x2) / 2) < vidW * 0.33);
+      const centerDets = dets.filter(d => ((d.x1 + d.x2) / 2) >= vidW * 0.33 && ((d.x1 + d.x2) / 2) < vidW * 0.67);
+      const rightDets  = dets.filter(d => ((d.x1 + d.x2) / 2) >= vidW * 0.67);
+
+      const worstOf = (list) => {
+        if (!list.length) return { label: 'libre', zone: 'safe' };
+        // Prioritize danger > caution > safe
+        const sorted = list.slice().sort((a, b) => b.score - a.score);
+        return { label: sorted[0].label, zone: payload.zone || 'safe' };
+      };
+
+      setZone('left',   worstOf(leftDets).label,   leftDets.length   ? (payload.zone === 'danger' ? 'danger' : 'caution') : 'safe');
+      setZone('center', worstOf(centerDets).label, centerDets.length ? payload.zone : 'safe');
+      setZone('right',  worstOf(rightDets).label,  rightDets.length  ? (payload.zone === 'danger' ? 'danger' : 'caution') : 'safe');
+
+      // Audio alert (throttled to avoid spam — min 4 sec apart)
+      const now = Date.now();
+      if (payload.audioMessage && now - lastAudioAt > 4000) {
+        lastAudioAt = now;
+        this.announceSpeech(payload.audioMessage);
+      }
+    };
+
+    const startEngine = async () => {
+      const video  = this.dom.visionVideoElement;
+      const canvas = document.getElementById('vision-overlay-canvas');
+
+      if (!video || !canvas) {
+        this.showToast('Sin Camara', 'Activa la camara primero para usar la deteccion de obstaculos.', 'warning');
+        return;
+      }
+
+      if (!this.scanner.isCameraActive) {
+        await this.startScannerCamera(true);
+        await new Promise(r => setTimeout(r, 600));
+      }
+
+      if (!window.EcoEyeVisionEngine) {
+        this.showToast('Motor no disponible', 'vision-engine.js no se cargo correctamente. Verifica tu conexion.', 'critical');
+        return;
+      }
+
+      if (btnStart) btnStart.style.display = 'none';
+      if (btnStop)  { btnStop.style.display = 'flex'; }
+      setPill('Cargando...', 'info');
+      resetZones();
+
+      engine = new window.EcoEyeVisionEngine(video, canvas, onResult);
+      try {
+        await engine.init();
+      } catch (_) {
+        if (btnStart) btnStart.style.display = 'flex';
+        if (btnStop)  btnStop.style.display = 'none';
+        setPill('Error', 'critical');
+      }
+    };
+
+    const stopEngine = () => {
+      if (engine) { engine.stop(); engine = null; }
+      clearInterval(fpsTimer);
+      const canvas = document.getElementById('vision-overlay-canvas');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      if (btnStart) btnStart.style.display = 'flex';
+      if (btnStop)  btnStop.style.display = 'none';
+      if (fpsLabel) fpsLabel.textContent = '-- fps';
+      if (cntLabel) cntLabel.textContent = '0 objetos';
+      setPill('Inactivo', 'info');
+      resetZones();
+    };
+
+    btnStart.addEventListener('click', () => startEngine());
+    if (btnStop) btnStop.addEventListener('click', () => stopEngine());
+  }
+
   async startScannerCamera(silent = false) {
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       if (!silent) this.showToast('Cámara no soportada', 'Tu navegador no permite acceso directo a la cámara web.', 'warning');
       return;

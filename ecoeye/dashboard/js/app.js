@@ -969,6 +969,8 @@ class EcoEyeDashboard {
     if (videoEl) {
       videoEl.srcObject = null;
     }
+    if (viewportEl) {
+      viewportEl.style.display = 'none';
     }
   }
 

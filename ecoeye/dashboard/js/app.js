@@ -2625,6 +2625,11 @@ class EcoEyeDashboard {
       this.dom.btnUploadScannerImg.setAttribute('aria-hidden', isMeds ? 'false' : 'true');
     }
 
+    // Card de resultado OCR/Medicamento: visible solo en el módulo Medicamentos
+    if (this.dom.scannerResultCard) {
+      this.dom.scannerResultCard.style.display = isMeds ? 'block' : 'none';
+    }
+
     // Actualizar hint del placeholder según modo
     const hintEl = document.getElementById('scanner-placeholder-hint');
     if (hintEl) {

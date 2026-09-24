@@ -2586,12 +2586,18 @@ class EcoEyeDashboard {
           // Ajustes según módulo activo (en Profundidad es automático continuo, sin recuadro azul ni botón obturador)
           const isDepth = this.scanner.activeMode === 'depth';
           const isCurrency = this.scanner.activeMode === 'currency';
+          const isMeds = this.scanner.activeMode === 'meds';
           if (this.dom.depthRadarCard) this.dom.depthRadarCard.style.display = isDepth ? 'block' : 'none';
           if (this.dom.scannerTargetReticle) this.dom.scannerTargetReticle.style.display = isDepth ? 'none' : 'block';
           if (this.dom.scannerShutterContainer) this.dom.scannerShutterContainer.style.display = isDepth ? 'none' : 'flex';
           if (this.dom.scannerViewportBox) this.dom.scannerViewportBox.classList.toggle('depth-mode-active', isDepth);
           const scCard = document.querySelector('.scanner-card');
           if (scCard) scCard.classList.toggle('depth-mode-active', isDepth);
+
+          // Mostrar card de resultado OCR solo en el módulo de Medicamentos
+          if (this.dom.scannerResultCard) {
+            this.dom.scannerResultCard.style.display = isMeds ? 'block' : 'none';
+          }
 
           // Ocultar botón "Subir Foto" en billetes y profundidad; solo visible en medicamentos
           if (this.dom.btnUploadScannerImg) {
@@ -2661,11 +2667,17 @@ class EcoEyeDashboard {
     // Estado visual inicial (oculto en Profundidad para usar la cámara completa sin obturador manual)
     const isInitialDepth = this.scanner.activeMode === 'depth';
     const isInitialCurrency = this.scanner.activeMode === 'currency';
+    const isInitialMeds = this.scanner.activeMode === 'meds';
     if (this.dom.scannerTargetReticle) this.dom.scannerTargetReticle.style.display = isInitialDepth ? 'none' : 'block';
     if (this.dom.scannerShutterContainer) this.dom.scannerShutterContainer.style.display = isInitialDepth ? 'none' : 'flex';
     if (this.dom.scannerViewportBox) this.dom.scannerViewportBox.classList.toggle('depth-mode-active', isInitialDepth);
     const initialScCard = document.querySelector('.scanner-card');
     if (initialScCard) initialScCard.classList.toggle('depth-mode-active', isInitialDepth);
+
+    // Mostrar card de resultado OCR solo en el módulo de Medicamentos (en el estado inicial)
+    if (this.dom.scannerResultCard) {
+      this.dom.scannerResultCard.style.display = isInitialMeds ? 'block' : 'none';
+    }
 
     // Ocultar "Subir Foto" en el estado inicial según el modo por defecto (currency = oculto)
     if (this.dom.btnUploadScannerImg) {

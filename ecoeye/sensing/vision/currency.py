@@ -49,8 +49,8 @@ _BANKNOTE_PROFILES: Dict[float, Dict] = {
         "name": "Billete de cien pesos",
         "type": CurrencyType.BANKNOTE,
         "color_desc": "rojo/cafe",
-        # Red-brick (100-peso note)
-        "hue_lo": (0, 70, 70),
+        # Red-brick (100-peso note, Sor Juana / Nezahualcoyotl) - saturation floor at 120 avoids finger skin
+        "hue_lo": (0, 120, 70),
         "hue_hi": (12, 255, 255),
     },
     200.0: {
@@ -248,7 +248,7 @@ class CurrencyDetector:
 
             # Special case: red hue wraps around 0/179 in OpenCV HSV.
             # Handle the 100-peso note's red band with a second mask.
-            lower_red2 = np.array((168, 70, 70), dtype=np.uint8)
+            lower_red2 = np.array((168, 125, 70), dtype=np.uint8)
             upper_red2 = np.array((179, 255, 255), dtype=np.uint8)
             mask_red2 = cv2.inRange(hsv, lower_red2, upper_red2)
             red2_ratio = cv2.countNonZero(mask_red2) / max(total_pixels, 1)

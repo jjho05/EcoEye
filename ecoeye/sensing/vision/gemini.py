@@ -152,15 +152,23 @@ class GeminiVisionClient:
         """
         prompt = (
             "Eres el subsistema de vision asistiva de EcoEye para personas con discapacidad visual. "
-            "Analiza detalladamente la imagen para identificar dinero en efectivo de Mexico (billetes o monedas MXN). "
-            "Responde estrictamente con un objeto JSON valido (sin bloques markdown de codigo ni explicaciones extra) con esta estructura: "
-            "{"
-            "  \"is_currency\": true/false, "
-            "  \"denomination\": 20 / 50 / 100 / 200 / 500 / 1000 o null, "
-            "  \"currency\": \"MXN\", "
-            "  \"confidence\": 0.0 a 1.0, "
-            "  \"audio_speech\": \"Texto corto en espanol para que las gafas lo verbalicen al usuario\", "
-            "  \"details\": \"Descripcion breve de la denominacion o color detectado\""
+            "Analiza con precision la imagen para identificar dinero en efectivo de Mexico (billetes o monedas MXN). "
+            "Usa esta guia oficial de billetes de Banxico (Familia G y F) para determinar la denominacion:\n"
+            "- $20 MXN: Color azul y rojo (Bicentenario) o azul marino/verde (Juarez y Manglares).\n"
+            "- $50 MXN: Color morado/magenta (Ajolote de Xochimilco o Jose Maria Morelos).\n"
+            "- $100 MXN: Color rojo/terracota (Sor Juana Ines de la Cruz o Nezahualcoyotl).\n"
+            "- $200 MXN: Color verde (Miguel Hidalgo y Jose Maria Morelos, o Sor Juana).\n"
+            "- $500 MXN: Color azul (Benito Juarez con ballena gris) o cafe/azul (Diego Rivera y Frida Kahlo).\n"
+            "- $1000 MXN: Color gris/violeta o sepia (Francisco I. Madero, Hermila Galindo y Carmen Serdan).\n"
+            "Presta maxima atencion al color predominante y a cualquier digito visible ('20', '50', '100', '200', '500', '1000').\n"
+            "Responde estrictamente con un objeto JSON valido (sin bloques markdown ni explicaciones adicionales):\n"
+            "{\n"
+            "  \"is_currency\": true/false,\n"
+            "  \"denomination\": 20 / 50 / 100 / 200 / 500 / 1000 o null,\n"
+            "  \"currency\": \"MXN\",\n"
+            "  \"confidence\": 0.0 a 1.0,\n"
+            "  \"audio_speech\": \"Billete de X pesos mexicanos\" o \"Moneda de X pesos\",\n"
+            "  \"details\": \"Color y motivo identificado\"\n"
             "}"
         )
 
@@ -178,22 +186,33 @@ class GeminiVisionClient:
                 lines = lines[:-1]
             raw_text = "\n".join(lines).strip()
 
+        parsed = None
         try:
             parsed = json.loads(raw_text)
+        except Exception:
+            import re
+            json_match = re.search(r"\{.*\}", raw_text, re.DOTALL)
+            if json_match:
+                try:
+                    parsed = json.loads(json_match.group(0))
+                except Exception:
+                    pass
+
+        if isinstance(parsed, dict):
             parsed["model"] = self.model
             parsed["provider"] = "Google Gemini"
             return parsed
-        except Exception:
-            return {
-                "is_currency": True if ("pesos" in raw_text.lower() or "billete" in raw_text.lower()) else False,
-                "denomination": None,
-                "currency": "MXN",
-                "confidence": 0.85,
-                "audio_speech": raw_text[:120],
-                "details": raw_text,
-                "model": self.model,
-                "provider": "Google Gemini",
-            }
+
+        return {
+            "is_currency": True if ("pesos" in raw_text.lower() or "billete" in raw_text.lower()) else False,
+            "denomination": None,
+            "currency": "MXN",
+            "confidence": 0.85,
+            "audio_speech": raw_text[:120],
+            "details": raw_text,
+            "model": self.model,
+            "provider": "Google Gemini",
+        }
 
     async def read_medicine_and_ocr(self, image_base64: str) -> Dict[str, Any]:
         """

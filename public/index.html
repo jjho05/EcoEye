@@ -452,76 +452,7 @@
       </article>
 
       <!-- ================================================================= -->
-      <!-- OBSTACLE DETECTION CARD — YOLOv8n + Depth Anything V2 (Real-Time) -->
-      <!-- ================================================================= -->
-      <article class="scanner-card" id="obstacle-detection-card" style="margin-top:1.25rem;">
-        <div class="scanner-card-header">
-          <div class="scanner-title-group">
-            <div class="scanner-icon-box" style="background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.3);">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-              </svg>
-            </div>
-            <div>
-              <h2 class="scanner-card-title">Deteccion de Obstaculos en Tiempo Real</h2>
-              <span class="scanner-card-desc">YOLOv8n + Depth Anything V2 corriendo en el navegador. Sin servidor requerido. WebGPU o WASM segun el dispositivo.</span>
-            </div>
-          </div>
-          <!-- Engine status pill -->
-          <span id="obstacle-engine-pill" class="status-pill info" style="flex-shrink:0;">Inactivo</span>
-        </div>
 
-        <!-- Backend mode and load progress -->
-        <div id="obstacle-load-bar-wrap" style="margin:0.75rem 0; display:none;">
-          <div style="display:flex; justify-content:space-between; font-size:0.78rem; font-weight:600; margin-bottom:0.35rem; color:var(--text-secondary);">
-            <span id="obstacle-load-status">Cargando modelo YOLOv8n...</span>
-            <span id="obstacle-load-pct" style="color:#00f5a0; font-family:var(--font-mono);">0%</span>
-          </div>
-          <div style="width:100%; height:5px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden;">
-            <div id="obstacle-load-bar" style="width:0%; height:100%; background:linear-gradient(90deg,#ef4444,#f59e0b); transition:width 0.2s ease;"></div>
-          </div>
-        </div>
-
-        <!-- Zone indicator row -->
-        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; margin-bottom:1rem;">
-          <div class="health-card" id="obs-zone-left" style="padding:0.85rem; text-align:center; transition:background 0.3s;">
-            <span style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block;">Izquierda</span>
-            <span id="obs-label-left" style="font-size:1.05rem; font-weight:800; color:var(--text-main);">--</span>
-            <span id="obs-dist-left" style="font-size:0.72rem; color:var(--text-muted); display:block;">sin datos</span>
-          </div>
-          <div class="health-card" id="obs-zone-center" style="padding:0.85rem; text-align:center; transition:background 0.3s; border:1px solid rgba(0,245,160,0.25);">
-            <span style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block;">Centro</span>
-            <span id="obs-label-center" style="font-size:1.05rem; font-weight:800; color:var(--text-main);">--</span>
-            <span id="obs-dist-center" style="font-size:0.72rem; color:var(--text-muted); display:block;">sin datos</span>
-          </div>
-          <div class="health-card" id="obs-zone-right" style="padding:0.85rem; text-align:center; transition:background 0.3s;">
-            <span style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block;">Derecha</span>
-            <span id="obs-label-right" style="font-size:1.05rem; font-weight:800; color:var(--text-main);">--</span>
-            <span id="obs-dist-right" style="font-size:0.72rem; color:var(--text-muted); display:block;">sin datos</span>
-          </div>
-        </div>
-
-        <!-- Backend info strip -->
-        <div style="display:flex; align-items:center; gap:0.6rem; font-size:0.75rem; color:var(--text-muted); flex-wrap:wrap;">
-          <span id="obs-backend-label" style="font-family:var(--font-mono); background:var(--bg-glass-heavy); padding:0.2rem 0.6rem; border-radius:4px; border:1px solid var(--border-subtle);">Backend: --</span>
-          <span id="obs-fps-label" style="font-family:var(--font-mono); background:var(--bg-glass-heavy); padding:0.2rem 0.6rem; border-radius:4px; border:1px solid var(--border-subtle);">-- fps</span>
-          <span id="obs-count-label" style="font-family:var(--font-mono); background:var(--bg-glass-heavy); padding:0.2rem 0.6rem; border-radius:4px; border:1px solid var(--border-subtle);">0 objetos</span>
-        </div>
-
-        <!-- Control button -->
-        <div style="margin-top:1rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
-          <button id="btn-start-obstacle" class="btn-action btn-primary-action" style="display:flex; align-items:center; gap:0.4rem;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            Iniciar Deteccion
-          </button>
-          <button id="btn-stop-obstacle" class="btn-action" style="display:none; align-items:center; gap:0.4rem; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.3);">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-            Detener
-          </button>
-        </div>
-      </article>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
     <!-- VISTA 3: HISTORIAL CLINICO (PARA EL MEDICO Y FAMILIAR)                -->

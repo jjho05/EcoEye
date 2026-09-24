@@ -229,6 +229,7 @@ class EcoEyeDashboard {
       btnCircularScan: document.getElementById('btn-circular-scan'),
       scannerStatusPill: document.getElementById('scanner-status-pill'),
       scannerStatusBadge: document.getElementById('scanner-status-badge'),
+      scannerViewportBox: document.getElementById('scanner-viewport-box') || document.querySelector('.scanner-viewport-box'),
       scannerTargetReticle: document.querySelector('.scanner-target-reticle'),
       scannerPlaceholderMsg: document.getElementById('scanner-placeholder-msg'),
       btnToggleCamera: document.getElementById('btn-toggle-camera'),
@@ -2539,12 +2540,15 @@ class EcoEyeDashboard {
           };
           this.showToast('Escáner', `${labels[this.scanner.activeMode] || 'Módulo'} activado`, 'info');
 
-          // Ajustes según módulo activo
-          if (this.scanner.activeMode === 'depth') {
-            if (this.dom.depthRadarCard) this.dom.depthRadarCard.style.display = 'block';
+          // Ajustes según módulo activo (en Profundidad se libera toda la cámara sin recuadro azul)
+          const isDepth = this.scanner.activeMode === 'depth';
+          if (this.dom.depthRadarCard) this.dom.depthRadarCard.style.display = isDepth ? 'block' : 'none';
+          if (this.dom.scannerTargetReticle) this.dom.scannerTargetReticle.style.display = isDepth ? 'none' : 'block';
+          if (this.dom.scannerViewportBox) this.dom.scannerViewportBox.classList.toggle('depth-mode-active', isDepth);
+
+          if (isDepth) {
             this.loadObjectDetectionModel();
           } else {
-            if (this.dom.depthRadarCard) this.dom.depthRadarCard.style.display = 'none';
             this.clearDepthOverlay();
           }
         });
@@ -2584,6 +2588,11 @@ class EcoEyeDashboard {
         });
       });
     }
+
+    // Estado visual inicial del retículo (oculto en Profundidad para usar la cámara completa)
+    const isInitialDepth = this.scanner.activeMode === 'depth';
+    if (this.dom.scannerTargetReticle) this.dom.scannerTargetReticle.style.display = isInitialDepth ? 'none' : 'block';
+    if (this.dom.scannerViewportBox) this.dom.scannerViewportBox.classList.toggle('depth-mode-active', isInitialDepth);
   }
 
   initObstacleDetection() {

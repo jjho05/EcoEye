@@ -1484,6 +1484,11 @@
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* En modo profundidad se remueve el recuadro para usar la cámara completa */
+.scanner-viewport-box.depth-mode-active .scanner-target-reticle {
+  display: none !important;
+}
+
 .scanner-target-reticle.scan-flashing {
   background: rgba(0, 245, 160, 0.4);
   box-shadow: 0 0 35px rgba(0, 245, 160, 0.7);

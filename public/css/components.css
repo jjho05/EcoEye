@@ -1485,7 +1485,9 @@
 }
 
 /* En modo profundidad se remueve el recuadro para usar la cámara completa */
-.scanner-viewport-box.depth-mode-active .scanner-target-reticle {
+.scanner-viewport-box.depth-mode-active .scanner-target-reticle,
+.scanner-card.depth-mode-active .scanner-shutter-container,
+.depth-mode-active ~ .scanner-shutter-container {
   display: none !important;
 }
 

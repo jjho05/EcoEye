@@ -227,6 +227,7 @@ class EcoEyeDashboard {
 
       // Dedicated Vision Module (View 2)
       btnCircularScan: document.getElementById('btn-circular-scan'),
+      scannerShutterContainer: document.getElementById('scanner-shutter-container') || document.querySelector('.scanner-shutter-container'),
       scannerStatusPill: document.getElementById('scanner-status-pill'),
       scannerStatusBadge: document.getElementById('scanner-status-badge'),
       scannerViewportBox: document.getElementById('scanner-viewport-box') || document.querySelector('.scanner-viewport-box'),
@@ -2540,11 +2541,14 @@ class EcoEyeDashboard {
           };
           this.showToast('Escáner', `${labels[this.scanner.activeMode] || 'Módulo'} activado`, 'info');
 
-          // Ajustes según módulo activo (en Profundidad es automático continuo y usa toda la cámara)
+          // Ajustes según módulo activo (en Profundidad es automático continuo, sin recuadro azul ni botón obturador)
           const isDepth = this.scanner.activeMode === 'depth';
           if (this.dom.depthRadarCard) this.dom.depthRadarCard.style.display = isDepth ? 'block' : 'none';
           if (this.dom.scannerTargetReticle) this.dom.scannerTargetReticle.style.display = isDepth ? 'none' : 'block';
+          if (this.dom.scannerShutterContainer) this.dom.scannerShutterContainer.style.display = isDepth ? 'none' : 'flex';
           if (this.dom.scannerViewportBox) this.dom.scannerViewportBox.classList.toggle('depth-mode-active', isDepth);
+          const scCard = document.querySelector('.scanner-card');
+          if (scCard) scCard.classList.toggle('depth-mode-active', isDepth);
 
           if (isDepth) {
             this.loadObjectDetectionModel();
@@ -2593,10 +2597,13 @@ class EcoEyeDashboard {
       });
     }
 
-    // Estado visual inicial del retículo (oculto en Profundidad para usar la cámara completa)
+    // Estado visual inicial (oculto en Profundidad para usar la cámara completa sin obturador manual)
     const isInitialDepth = this.scanner.activeMode === 'depth';
     if (this.dom.scannerTargetReticle) this.dom.scannerTargetReticle.style.display = isInitialDepth ? 'none' : 'block';
+    if (this.dom.scannerShutterContainer) this.dom.scannerShutterContainer.style.display = isInitialDepth ? 'none' : 'flex';
     if (this.dom.scannerViewportBox) this.dom.scannerViewportBox.classList.toggle('depth-mode-active', isInitialDepth);
+    const initialScCard = document.querySelector('.scanner-card');
+    if (initialScCard) initialScCard.classList.toggle('depth-mode-active', isInitialDepth);
   }
 
   initObstacleDetection() {

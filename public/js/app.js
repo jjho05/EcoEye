@@ -32,7 +32,7 @@ class EcoEyeDashboard {
 
     // Client-Side OCR and Vision Lens State
     this.scanner = {
-      activeMode: 'auto', // 'auto', 'depth', 'meds', 'currency', 'text'
+      activeMode: 'currency', // Módulos especializados: 'currency', 'meds', 'depth'
       stream: null,
       isCameraActive: false,
       isProcessing: false,
@@ -1048,7 +1048,7 @@ class EcoEyeDashboard {
     // --- Determine effective mode ---
     const effectiveMode = mode === 'auto' ? this.scanner.activeMode : mode;
 
-    // --- Attempt Gemini cloud inference ---
+    // --- Process strictly according to selected module ---
     try {
       if (effectiveMode === 'currency') {
         const res = await this.api.processCurrency({ image_base64: b64 });
@@ -1060,7 +1060,6 @@ class EcoEyeDashboard {
 
           if (denom) this.renderCurrencyHUD(denom);
           this.announceSpeech(speech);
-          // Update scanner result card if visible
           this.updateOcrResult({
             category: 'Billete / Efectivo MXN',
             rawText: speech,
@@ -1070,56 +1069,38 @@ class EcoEyeDashboard {
           return;
         }
 
-        // No currency detected in frame
+        // Enfoque estricto: si no hay billete, avisar y terminar inmediatamente
         this.announceSpeech('No se detecta un billete en la imagen. Enfoque el billete directamente.');
         return;
       } else if (effectiveMode === 'meds') {
         const res = await this.api.processOCR({ image_base64: b64 });
 
         if (res && (res.full_text || res.audio_speech)) {
-          const speech = res.audio_speech || res.full_text || 'Texto reconocido';
+          const speech = res.audio_speech || res.full_text || 'Medicamento reconocido';
           const conf = res.confidence ? Math.round(res.confidence * 100) : 95;
           this.renderOCR(res.full_text || speech);
           this.announceSpeech(speech);
           this.updateOcrResult({
-            category: res.is_medication ? 'Medicamento' : 'Texto General',
+            category: 'Medicamento',
             rawText: res.full_text || speech,
             spokenText: speech,
-            advice: res.instructions || res.dosage || 'Texto reconocido correctamente.'
+            advice: res.instructions || res.dosage || 'Información de medicamento leída correctamente.'
           }, conf);
           return;
         }
-      } else {
-        // Auto / scene description
-        const res = await this.api.geminiDescribeScene({ image_base64: b64 });
 
-        if (res && (res.summary || res.detailed_description)) {
-          const speech = res.summary || res.detailed_description;
-          this.announceSpeech(speech);
-          this.updateOcrResult({
-            category: 'Descripcion de Escena',
-            rawText: res.detailed_description || speech,
-            spokenText: speech,
-            advice: res.safety_recommendation || 'Proceda con precaucion.'
-          }, 97);
-          return;
-        }
+        this.announceSpeech('No se detecta etiqueta o nombre de medicamento. Enfoque la caja directamente.');
+        return;
       }
-    } catch (geminiErr) {
-      // Gemini unavailable (no API key, timeout, rate limit) — fall through to Tesseract
-      const isUnconfigured = geminiErr && geminiErr.message && geminiErr.message.includes('503');
-      if (isUnconfigured) {
-        this.showToast('Gemini no configurado', 'Usando OCR local (Tesseract). Agrega GEMINI_API_KEY en Vercel para mayor precision.', 'warning');
-      } else {
-        console.warn('Gemini fallback to Tesseract:', geminiErr.message);
+    } catch (apiErr) {
+      if (effectiveMode === 'currency') {
+        this.announceSpeech('No fue posible identificar el billete. Intente de nuevo con mejor iluminación.');
+        return;
+      } else if (effectiveMode === 'meds' && canvasEl) {
+        // Fallback local solo para medicamentos si la API estuviera inaccesible
+        this.runOcrInference(canvasEl);
+        return;
       }
-    }
-
-    // --- Fallback: Tesseract.js WASM (offline, no API key required) ---
-    if (canvasEl) {
-      this.runOcrInference(canvasEl);
-    } else {
-      this.showToast('Sin fuente de imagen', 'Usa la camara o sube una foto para escanear', 'warning');
     }
   }
 
@@ -2539,61 +2520,32 @@ class EcoEyeDashboard {
       this.dom.btnCircularScan.addEventListener('click', () => this.triggerScanCapture());
     }
 
-    // 5. Continuous Depth Tracking or Auto-Scan Toggle (Adaptive by Mode)
-    if (this.dom.btnToggleContinuousDepth) {
-      this.dom.btnToggleContinuousDepth.addEventListener('click', () => {
-        if (this.scanner.activeMode === 'currency') {
-          this.toggleContinuousCurrencyScan();
-        } else {
-          this.toggleContinuousDepth();
-        }
-      });
-    }
-
-    // 6. Speak Depth Summary Button
+    // 5. Speak Depth Summary Button
     if (this.dom.btnSpeakDepthSummary) {
       this.dom.btnSpeakDepthSummary.addEventListener('click', () => this.speakDepthSummary());
     }
 
-    // 7. Scan Mode Selector Pills
+    // 6. Scan Mode Selector Pills (Módulos Especializados)
     if (this.dom.scannerModePills) {
       this.dom.scannerModePills.forEach(btn => {
         btn.addEventListener('click', () => {
           this.dom.scannerModePills.forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
-          this.scanner.activeMode = btn.dataset.scanMode || 'auto';
+          this.scanner.activeMode = btn.dataset.scanMode || 'currency';
           const labels = {
-            auto: 'Modo Auto',
-            depth: 'Modo Detección de Profundidad',
-            meds: 'Modo Medicamentos',
-            currency: 'Modo Billetes'
+            currency: 'Módulo Billetes MXN',
+            meds: 'Módulo Medicamentos',
+            depth: 'Módulo Detección de Profundidad'
           };
-          this.showToast('Escáner', `${labels[this.scanner.activeMode] || 'Auto'} activado`, 'info');
+          this.showToast('Escáner', `${labels[this.scanner.activeMode] || 'Módulo'} activado`, 'info');
 
-          // Mode-specific UI adjustments
+          // Ajustes según módulo activo
           if (this.scanner.activeMode === 'depth') {
             if (this.dom.depthRadarCard) this.dom.depthRadarCard.style.display = 'block';
-            this.stopContinuousCurrencyLoop();
-            if (this.dom.btnContinuousDepthText) {
-              this.dom.btnContinuousDepthText.textContent = this.scanner.depthContinuous ? 'Rastreo Continuo: ON' : 'Rastreo Continuo: OFF';
-            }
             this.loadObjectDetectionModel();
-            if (this.scanner.isCameraActive && !this.scanner.depthContinuous) {
-              this.toggleContinuousDepth(true);
-            }
-          } else if (this.scanner.activeMode === 'currency') {
-            this.stopContinuousDepthLoop();
-            if (this.dom.depthRadarCard) this.dom.depthRadarCard.style.display = 'none';
-            if (this.dom.btnContinuousDepthText) {
-              this.dom.btnContinuousDepthText.textContent = this.scanner.currencyContinuous ? 'Auto-Detección: ON' : 'Auto-Detección: OFF';
-            }
           } else {
-            this.stopContinuousDepthLoop();
-            this.stopContinuousCurrencyLoop();
             if (this.dom.depthRadarCard) this.dom.depthRadarCard.style.display = 'none';
-            if (this.dom.btnContinuousDepthText) {
-              this.dom.btnContinuousDepthText.textContent = 'Rastreo Continuo: OFF';
-            }
+            this.clearDepthOverlay();
           }
         });
       });
@@ -2888,6 +2840,7 @@ class EcoEyeDashboard {
       this.dom.scannerStatusBadge.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
     }
 
+    this.clearDepthOverlay();
     this.showToast('Cámara Detenida', 'Sensor óptico en modo reposo', 'info');
   }
 
@@ -2949,9 +2902,10 @@ class EcoEyeDashboard {
           setTimeout(() => reticle.classList.remove('scan-flashing'), 400);
         }
 
-        // Si está en Modo Profundidad, correr detección de objetos y radar
+        // Si está en Módulo Profundidad, correr detección de objetos, radar y audio
         if (this.scanner.activeMode === 'depth') {
-          this.runObjectAndDepthInference(video);
+          await this.runObjectAndDepthInference(video);
+          this.speakDepthSummary();
           return;
         }
 
@@ -2991,177 +2945,6 @@ class EcoEyeDashboard {
       console.warn('COCO-SSD loading notice (resilient mode active):', err);
     } finally {
       this.scanner.isModelLoading = false;
-    }
-  }
-
-  toggleContinuousDepth(forceState = null) {
-    const nextState = forceState !== null ? forceState : !this.scanner.depthContinuous;
-    this.scanner.depthContinuous = nextState;
-
-    if (this.dom.btnContinuousDepthText) {
-      this.dom.btnContinuousDepthText.textContent = nextState ? 'Rastreo Continuo: ON' : 'Rastreo Continuo: OFF';
-    }
-
-    if (this.dom.btnToggleContinuousDepth) {
-      if (nextState) {
-        this.dom.btnToggleContinuousDepth.style.background = 'rgba(0,245,160,0.18)';
-        this.dom.btnToggleContinuousDepth.style.color = '#00f5a0';
-        this.dom.btnToggleContinuousDepth.style.borderColor = '#00f5a0';
-      } else {
-        this.dom.btnToggleContinuousDepth.style.background = 'rgba(6,182,212,0.12)';
-        this.dom.btnToggleContinuousDepth.style.color = '#06b6d4';
-        this.dom.btnToggleContinuousDepth.style.borderColor = 'rgba(6,182,212,0.3)';
-      }
-    }
-
-    if (nextState) {
-      this.startContinuousDepthLoop();
-      this.showToast('Rastreo Activo', 'Detección continua de obstáculos iniciada a 12 FPS', 'info');
-    } else {
-      this.stopContinuousDepthLoop();
-      this.showToast('Rastreo Pausado', 'Detección en tiempo real detenida', 'info');
-    }
-  }
-
-  startContinuousDepthLoop() {
-    if (!this.scanner.isCameraActive) {
-      this.startScannerCamera(true);
-    }
-
-    let lastInferTime = 0;
-    const loop = (timestamp) => {
-      if (!this.scanner.depthContinuous) return;
-
-      // Throttle inference to ~10-12 FPS to preserve CPU/GPU battery on mobile and laptops
-      if (timestamp - lastInferTime > 90) {
-        lastInferTime = timestamp;
-        if (this.dom.visionVideoElement && this.dom.visionVideoElement.readyState >= 2) {
-          this.runObjectAndDepthInference(this.dom.visionVideoElement, true);
-        }
-      }
-
-      this.scanner.continuousAnimId = requestAnimationFrame(loop);
-    };
-
-    if (this.scanner.continuousAnimId) {
-      cancelAnimationFrame(this.scanner.continuousAnimId);
-    }
-    this.scanner.continuousAnimId = requestAnimationFrame(loop);
-  }
-
-  stopContinuousDepthLoop() {
-    this.scanner.depthContinuous = false;
-    if (this.scanner.continuousAnimId) {
-      cancelAnimationFrame(this.scanner.continuousAnimId);
-      this.scanner.continuousAnimId = null;
-    }
-    if (this.dom.btnContinuousDepthText) {
-      this.dom.btnContinuousDepthText.textContent = 'Rastreo Continuo: OFF';
-    }
-    this.clearDepthOverlay();
-  }
-
-  toggleContinuousCurrencyScan(forceState = null) {
-    const nextState = forceState !== null ? forceState : !this.scanner.currencyContinuous;
-    this.scanner.currencyContinuous = nextState;
-
-    if (this.dom.btnContinuousDepthText) {
-      this.dom.btnContinuousDepthText.textContent = nextState ? 'Auto-Detección: ON' : 'Auto-Detección: OFF';
-    }
-
-    if (this.dom.btnToggleContinuousDepth) {
-      if (nextState) {
-        this.dom.btnToggleContinuousDepth.style.background = 'rgba(0,245,160,0.18)';
-        this.dom.btnToggleContinuousDepth.style.color = '#00f5a0';
-        this.dom.btnToggleContinuousDepth.style.borderColor = '#00f5a0';
-      } else {
-        this.dom.btnToggleContinuousDepth.style.background = 'rgba(6,182,212,0.12)';
-        this.dom.btnToggleContinuousDepth.style.color = '#06b6d4';
-        this.dom.btnToggleContinuousDepth.style.borderColor = 'rgba(6,182,212,0.3)';
-      }
-    }
-
-    if (nextState) {
-      this.startContinuousCurrencyLoop();
-      this.showToast('Auto-Detección Activa', 'Identificación continua de billetes en tiempo real', 'info');
-    } else {
-      this.stopContinuousCurrencyLoop();
-      this.showToast('Auto-Detección Pausada', 'Escaneo automático detenido', 'info');
-    }
-  }
-
-  startContinuousCurrencyLoop() {
-    if (!this.scanner.isCameraActive) {
-      this.startScannerCamera(true);
-    }
-    if (this.scanner.currencyLoopTimer) return;
-
-    let lastScanTime = 0;
-    let lastAnnouncedDenom = null;
-    let lastAnnouncedTime = 0;
-
-    this.scanner.currencyLoopTimer = setInterval(async () => {
-      if (!this.scanner.currencyContinuous || this.scanner.isProcessing) return;
-      if (!this.scanner.isCameraActive || !this.dom.visionVideoElement) return;
-
-      const video = this.dom.visionVideoElement;
-      if (video.readyState < 2 || video.videoWidth === 0) return;
-
-      const now = Date.now();
-      if (now - lastScanTime < 1800) return; // Evaluación cada 1.8 segundos
-      lastScanTime = now;
-
-      // Realizar escaneo rápido del área del billete en color natural
-      const canvas = this.capturarRecorteParaOCR(video, 'currency');
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      const b64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-
-      // Verificamos si hay luz mínima para evitar llamadas innecesarias
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        const sample = ctx.getImageData(0, 0, Math.min(canvas.width, 40), Math.min(canvas.height, 40));
-        let lum = 0;
-        for (let i = 0; i < sample.data.length; i += 4) {
-          lum += 0.299 * sample.data[i] + 0.587 * sample.data[i + 1] + 0.114 * sample.data[i + 2];
-        }
-        if (lum / (sample.data.length / 4) < 25) return; // Muy oscuro
-      }
-
-      try {
-        const res = await this.api.processCurrency({ image_base64: b64 });
-        if (res && res.denomination) {
-          const denom = res.denomination;
-          // Evitar repetir la misma denominación si sigue frente a la cámara dentro de 4s
-          if (denom === lastAnnouncedDenom && now - lastAnnouncedTime < 4000) {
-            return;
-          }
-          lastAnnouncedDenom = denom;
-          lastAnnouncedTime = now;
-
-          const speech = res.audio_speech || `Billete de ${denom} pesos mexicanos`;
-          const conf = res.confidence ? Math.round(res.confidence * 100) : 98;
-          this.renderCurrencyHUD(denom);
-          this.announceSpeech(speech);
-          this.showToast('Billete Identificado', `$${denom} MXN — ${conf}% certeza`, 'normal');
-          this.updateOcrResult({
-            category: 'Billete / Efectivo MXN',
-            rawText: speech,
-            spokenText: speech,
-            advice: res.details || `Denominación de ${denom} pesos verificada con IA Gemini.`
-          }, conf);
-        }
-      } catch (_) {}
-    }, 500);
-  }
-
-  stopContinuousCurrencyLoop() {
-    this.scanner.currencyContinuous = false;
-    if (this.scanner.currencyLoopTimer) {
-      clearInterval(this.scanner.currencyLoopTimer);
-      this.scanner.currencyLoopTimer = null;
-    }
-    if (this.scanner.activeMode === 'currency' && this.dom.btnContinuousDepthText) {
-      this.dom.btnContinuousDepthText.textContent = 'Auto-Detección: OFF';
     }
   }
 

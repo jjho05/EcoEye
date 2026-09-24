@@ -272,10 +272,9 @@
 
           <!-- Scanner Mode Selector Pills -->
           <div class="analytics-filter-pills" id="scanner-mode-pills" style="margin-top:0.35rem; flex-wrap:wrap; gap:0.35rem;">
-            <button class="analytics-pill-btn active" data-scan-mode="auto">🔍 Auto</button>
-            <button class="analytics-pill-btn" data-scan-mode="depth">🚧 Detección de Profundidad</button>
+            <button class="analytics-pill-btn active" data-scan-mode="currency">💵 Billetes MXN</button>
             <button class="analytics-pill-btn" data-scan-mode="meds">💊 Medicamentos</button>
-            <button class="analytics-pill-btn" data-scan-mode="currency">💵 Billetes MXN</button>
+            <button class="analytics-pill-btn" data-scan-mode="depth">🚧 Detección de Profundidad</button>
           </div>
         </div>
 
@@ -311,7 +310,7 @@
           </div>
         </div>
 
-        <!-- Camera Control Bar (Iniciar/Detener, Subir Foto, Modo Continuo) -->
+        <!-- Camera Control Bar (Iniciar/Detener, Subir Foto) -->
         <div style="display:flex; justify-content:center; align-items:center; gap:0.75rem; margin-top:1rem; flex-wrap:wrap;">
           <button id="btn-toggle-camera" class="btn-action" style="background:rgba(0,245,160,0.12); color:#00f5a0; border:1px solid rgba(0,245,160,0.3); border-radius:8px; padding:0.5rem 1.1rem; font-weight:700; display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
@@ -321,11 +320,6 @@
           <button id="btn-upload-scanner-img" class="btn-action" style="background:var(--bg-subtle); color:var(--text-secondary); border:1px solid var(--border-subtle); border-radius:8px; padding:0.5rem 1.1rem; font-weight:600; display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
             <span>Subir Foto</span>
-          </button>
-
-          <button id="btn-toggle-continuous-depth" class="btn-action" style="background:rgba(6,182,212,0.12); color:#06b6d4; border:1px solid rgba(6,182,212,0.3); border-radius:8px; padding:0.5rem 1.1rem; font-weight:600; display:flex; align-items:center; gap:0.4rem; cursor:pointer;" title="Activar rastreo en tiempo real">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
-            <span id="btn-continuous-depth-text">Rastreo Continuo: OFF</span>
           </button>
         </div>
 

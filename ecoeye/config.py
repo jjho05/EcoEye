@@ -82,9 +82,9 @@ class Settings(BaseSettings):
         description="API Key de Google Gemini para visión y análisis multimodal"
     )
     gemini_model: str = Field(
-        default="gemini-3.8-flash",
+        default="gemini-2.5-flash",
         validation_alias=AliasChoices("ECOEYE_GEMINI_MODEL", "GEMINI_MODEL"),
-        description="Modelo de Google Gemini para inferencia multimodal (gemini-3.8-flash)"
+        description="Modelo de Google Gemini para inferencia multimodal (gemini-2.5-flash)"
     )
 
     # Sensado WiFi CSI

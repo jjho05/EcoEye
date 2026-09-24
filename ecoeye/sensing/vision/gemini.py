@@ -67,35 +67,62 @@ class GeminiVisionClient:
             }
 
         clean_b64 = self._clean_base64(image_base64)
-        endpoint = f"{self.base_url}/models/{self.model}:generateContent?key={self.api_key}"
 
-        payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": prompt},
-                        {
-                            "inline_data": {
-                                "mime_type": mime_type,
-                                "data": clean_b64,
-                            }
-                        },
-                    ]
-                }
-            ],
-            "generationConfig": {
-                "temperature": 0.2,
-                "topK": 32,
-                "topP": 0.95,
-                "maxOutputTokens": 1024,
-            },
-        }
+        # Pool de modelos con fallback automático ante saturación (503) o no disponibilidad (404)
+        model_candidates = [self.model]
+        for fallback_m in ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]:
+            if fallback_m not in model_candidates:
+                model_candidates.append(fallback_m)
 
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.post(endpoint, json=payload)
+        last_error = "Error desconocido de Gemini API"
+        last_status = 500
 
-            if resp.status_code != 200:
+        for current_model in model_candidates:
+            endpoint = f"{self.base_url}/models/{current_model}:generateContent?key={self.api_key}"
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt},
+                            {
+                                "inline_data": {
+                                    "mime_type": mime_type,
+                                    "data": clean_b64,
+                                }
+                            },
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.2,
+                    "topK": 32,
+                    "topP": 0.95,
+                    "maxOutputTokens": 1024,
+                },
+            }
+
+            try:
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    resp = await client.post(endpoint, json=payload)
+
+                if resp.status_code == 200:
+                    data = resp.json()
+                    candidates = data.get("candidates", [])
+                    if not candidates:
+                        continue
+
+                    text_parts = candidates[0].get("content", {}).get("parts", [])
+                    full_text = "".join(part.get("text", "") for part in text_parts).strip()
+
+                    return {
+                        "success": True,
+                        "text": full_text,
+                        "model": current_model,
+                        "usage": data.get("usageMetadata", {}),
+                    }
+
+                # Si es 503 (high demand) o 404 (model not found), loguear advertencia e intentar el siguiente modelo
+                last_status = resp.status_code
                 error_detail = resp.text
                 try:
                     err_json = resp.json()
@@ -103,47 +130,22 @@ class GeminiVisionClient:
                         error_detail = err_json["error"]["message"]
                 except Exception:
                     pass
-                logger.error("Error en llamada a Gemini (%d): %s", resp.status_code, error_detail)
-                return {
-                    "success": False,
-                    "status_code": resp.status_code,
-                    "error": f"Error Gemini API ({resp.status_code}): {error_detail}",
-                    "model": self.model,
-                }
+                last_error = f"Error Gemini API ({resp.status_code}): {error_detail}"
+                logger.warning("Gemini modelo %s fallo con status %d. Probando modelo alternativo...", current_model, resp.status_code)
 
-            data = resp.json()
-            candidates = data.get("candidates", [])
-            if not candidates:
-                return {
-                    "success": False,
-                    "error": "Gemini no genero candidatos de respuesta para esta imagen.",
-                    "model": self.model,
-                }
+            except httpx.TimeoutException:
+                logger.warning("Timeout al conectar con Gemini modelo %s. Probando alternativo...", current_model)
+                last_error = f"Tiempo de espera agotado ({self.timeout}s) contactando Gemini ({current_model})."
+            except Exception as exc:
+                logger.error("Excepcion con modelo %s: %s", current_model, exc)
+                last_error = str(exc)
 
-            text_parts = candidates[0].get("content", {}).get("parts", [])
-            full_text = "".join(part.get("text", "") for part in text_parts).strip()
-
-            return {
-                "success": True,
-                "text": full_text,
-                "model": self.model,
-                "usage": data.get("usageMetadata", {}),
-            }
-
-        except httpx.TimeoutException:
-            logger.warning("Timeout al conectar con Gemini API (%s)", self.model)
-            return {
-                "success": False,
-                "error": f"Tiempo de espera agotado ({self.timeout}s) contactando Gemini.",
-                "model": self.model,
-            }
-        except Exception as exc:
-            logger.error("Excepcion no controlada en GeminiVisionClient: %s", exc)
-            return {
-                "success": False,
-                "error": str(exc),
-                "model": self.model,
-            }
+        return {
+            "success": False,
+            "status_code": last_status,
+            "error": last_error,
+            "model": self.model,
+        }
 
     async def identify_currency(self, image_base64: str) -> Dict[str, Any]:
         """
@@ -257,6 +259,7 @@ class GeminiVisionClient:
             return res
 
         raw_text = res.get("text", "").strip()
+        # --- Clean markdown fences ---
         if raw_text.startswith("```"):
             lines = raw_text.splitlines()
             if lines[0].startswith("```"):
@@ -265,40 +268,56 @@ class GeminiVisionClient:
                 lines = lines[:-1]
             raw_text = "\n".join(lines).strip()
 
+        parsed: Optional[Dict[str, Any]] = None
         try:
             parsed = json.loads(raw_text)
+        except Exception:
+            # Gemini may wrap JSON with extra text — extract first JSON block with regex
+            import re as _re
+            json_match = _re.search(r"\{.*\}", raw_text, _re.DOTALL)
+            if json_match:
+                try:
+                    parsed = json.loads(json_match.group(0))
+                except Exception:
+                    pass
+
+        if isinstance(parsed, dict):
             parsed["model"] = self.model
             parsed["provider"] = "Google Gemini"
+            # Normalise is_medication to a proper Python bool
+            parsed["is_medication"] = bool(parsed.get("is_medication"))
             # Si el modelo determinó que no es medicamento, asegurar audio speech claro
-            if not parsed.get("is_medication"):
-                parsed["is_medication"] = False
+            if not parsed["is_medication"]:
                 parsed["medicine_name"] = None
                 parsed["dosage"] = None
-                if not parsed.get("audio_speech") or "medicamento" in parsed.get("audio_speech", "").lower() and "detectado" in parsed.get("audio_speech", "").lower():
-                    parsed["audio_speech"] = "No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente."
+                if not parsed.get("audio_speech"):
+                    parsed["audio_speech"] = (
+                        "No se detecta un medicamento en la imagen. "
+                        "Enfoque la caja o frasco directamente."
+                    )
             return parsed
-        except Exception:
-            # Fallback a clasificador local de catálogo mexicano
-            local_match = identify_mexican_medication(raw_text)
-            if local_match:
-                local_match["full_text"] = raw_text
-                local_match["has_text"] = True
-                local_match["model"] = self.model
-                local_match["provider"] = "Google Gemini + Local Catalog"
-                return local_match
 
-            return {
-                "has_text": bool(raw_text),
-                "is_medication": False,
-                "full_text": raw_text,
-                "medicine_name": None,
-                "dosage": None,
-                "instructions": None,
-                "audio_speech": "No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente.",
-                "confidence": 0.0,
-                "model": self.model,
-                "provider": "Google Gemini",
-            }
+        # Fallback al clasificador local de catálogo mexicano cuando Gemini no devuelve JSON parseable
+        local_match = identify_mexican_medication(raw_text)
+        if local_match:
+            local_match["full_text"] = raw_text
+            local_match["has_text"] = True
+            local_match["model"] = self.model
+            local_match["provider"] = "Google Gemini + Local Catalog"
+            return local_match
+
+        return {
+            "has_text": bool(raw_text),
+            "is_medication": False,
+            "full_text": raw_text,
+            "medicine_name": None,
+            "dosage": None,
+            "instructions": None,
+            "audio_speech": "No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente.",
+            "confidence": 0.0,
+            "model": self.model,
+            "provider": "Google Gemini",
+        }
 
     async def describe_scene(
         self,

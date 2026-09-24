@@ -1012,6 +1012,9 @@ class EcoEyeDashboard {
   async geminiAnalyzeImage(b64, mode = 'auto', canvasEl = null) {
     if (!b64) return;
 
+    // --- Determine effective mode (must be first, gates below depend on it) ---
+    const effectiveMode = (mode === 'auto' || !mode) ? this.scanner.activeMode : mode;
+
     // --- Ambient light guard ---
     // Detect under-exposed frames so we can tell the user before wasting an API call
     if (canvasEl) {
@@ -1032,23 +1035,16 @@ class EcoEyeDashboard {
       }
     }
 
-    // --- Aspect-ratio gate for currency mode ---
-    // Banknotes de Banxico tienen relacion ancho/alto entre 1.6:1 y 2.3:1.
-    // Si el objeto en pantalla no cumple esa geometria, pedimos encuadre correcto.
-    if ((mode === 'currency' || mode === 'auto') && canvasEl && canvasEl.width > 0 && canvasEl.height > 0) {
+    // --- Aspect-ratio gate — SOLO aplica en modo currency ---
+    // En meds/depth nunca bloqueamos por proporción de canvas
+    if (effectiveMode === 'currency' && canvasEl && canvasEl.width > 0 && canvasEl.height > 0) {
       const ratio = canvasEl.width / canvasEl.height;
       if (ratio < 1.3 || ratio > 3.0) {
-        // Only warn in currency mode, not auto
-        if (mode === 'currency') {
-          this.announceSpeech('Encuadre el billete completo frente a la camara e intente de nuevo.');
-          this.showToast('Encuadre Requerido', 'Asegurese de que el billete sea visible completamente', 'warning');
-          return;
-        }
+        this.announceSpeech('Encuadre el billete completo frente a la camara e intente de nuevo.');
+        this.showToast('Encuadre Requerido', 'Asegurese de que el billete sea visible completamente', 'warning');
+        return;
       }
     }
-
-    // --- Determine effective mode ---
-    const effectiveMode = mode === 'auto' ? this.scanner.activeMode : mode;
 
     // --- Process strictly according to selected module ---
     try {
@@ -1077,24 +1073,46 @@ class EcoEyeDashboard {
       } else if (effectiveMode === 'meds') {
         const res = await this.api.processOCR({ image_base64: b64 });
 
-        if (res && res.is_medication === true) {
+        // is_medication puede venir como boolean true o string "true" dependiendo del modelo
+        const isMed = res && (res.is_medication === true || res.is_medication === 'true');
+
+        // Detectar si Gemini no está configurado
+        if (res && res.status === 'gemini_not_configured') {
+          this.announceSpeech('Servicio de reconocimiento no configurado. Contacta al administrador del sistema.');
+          this.showToast('API No Configurada', 'Se requiere configurar GEMINI_API_KEY en el servidor para reconocer medicamentos', 'critical');
+          return;
+        }
+
+        // Detectar error temporal de servicio (503/timeout)
+        if (res && res.status === 'gemini_error') {
+          this.announceSpeech('Servicio de reconocimiento no disponible temporalmente. Intente de nuevo.');
+          this.showToast('Servicio Ocupado', 'Reintente en unos segundos con la cámara enfocada', 'warning');
+          return;
+        }
+
+        if (isMed) {
           const medName = res.medicine_name || 'Medicamento';
           const dosage = res.dosage ? ` (${res.dosage})` : '';
-          const speech = res.audio_speech || `${medName}${dosage} reconocido.`;
-          const conf = res.confidence ? Math.round(res.confidence * 100) : 95;
-          this.renderOCR(res.full_text || speech);
+          const form = res.form ? `, ${res.form}` : '';
+          const speech = res.audio_speech || `${medName}${dosage} detectado.`;
+          const conf = res.confidence != null ? Math.round(res.confidence * 100) : 90;
+          this.renderOCR(res.full_text || `${medName}${dosage}${form}`);
           this.announceSpeech(speech);
           this.updateOcrResult({
             category: '💊 Medicamento',
-            rawText: res.full_text || `${medName}${dosage}`,
+            rawText: res.full_text || `${medName}${dosage}${form}`,
             spokenText: speech,
-            advice: res.instructions || `Medicamento: ${medName}. Verifique indicaciones antes de tomar.`
+            advice: res.instructions || `Medicamento: ${medName}. Verifique dosis y caducidad antes de administrar.`
           }, conf);
           return;
         }
 
-        // Si la respuesta indica que NO es medicamento o no se detectó empaque farmacéutico
-        this.announceSpeech(res?.audio_speech || 'No se detecta un medicamento en la imagen. Enfoque la caja o frasco directamente.');
+        // No es medicamento — dar feedback claro
+        const noMedMsg = (res && res.audio_speech && !isMed)
+          ? res.audio_speech
+          : 'No se detecta un medicamento en la imagen. Enfoque la caja, frasco o blíster directamente.';
+        this.announceSpeech(noMedMsg);
+        this.showToast('Sin Medicamento', 'Enfoque la caja o frasco directamente frente a la cámara', 'warning');
         return;
       }
     } catch (apiErr) {
@@ -1689,17 +1707,27 @@ class EcoEyeDashboard {
               this.showToast('Efectivo Identificado', `Billete de $${currRes.denomination} MXN reconocido`, 'normal');
             } else {
               const ocrRes = await this.api.processOCR({ image_base64: base64 });
-              const detected = (ocrRes && ocrRes.text) ? ocrRes.text : 'Texto no legible con certeza';
-              this.state.ocrText = detected;
-              this.renderOCR(detected);
-              if (this.dom.visionTabTargetVal) {
-                this.dom.visionTabTargetVal.textContent = 'TEXTO / ETIQUETA';
+              const isMedUpload = ocrRes && (ocrRes.is_medication === true || ocrRes.is_medication === 'true');
+              if (isMedUpload) {
+                const medName = ocrRes.medicine_name || 'Medicamento';
+                const dosage = ocrRes.dosage ? ` ${ocrRes.dosage}` : '';
+                const speech = ocrRes.audio_speech || `${medName}${dosage} detectado.`;
+                this.renderOCR(ocrRes.full_text || `${medName}${dosage}`);
+                this.announceSpeech(speech);
+                this.showToast('Medicamento Detectado', `${medName}${dosage}`, 'normal');
+              } else {
+                const detected = (ocrRes && (ocrRes.full_text || ocrRes.cleaned_text)) || 'Texto no legible con certeza';
+                this.state.ocrText = detected;
+                this.renderOCR(detected);
+                if (this.dom.visionTabTargetVal) {
+                  this.dom.visionTabTargetVal.textContent = isMedUpload ? 'MEDICAMENTO' : 'TEXTO / ETIQUETA';
+                }
+                if (this.dom.visionTabTargetLabel) {
+                  this.dom.visionTabTargetLabel.textContent = detected;
+                }
+                this.announceSpeech(detected.length > 5 ? `Contenido: ${detected}` : 'No se pudo leer el texto con claridad.');
+                this.showToast('Lectura OCR', detected.substring(0, 60), 'normal');
               }
-              if (this.dom.visionTabTargetLabel) {
-                this.dom.visionTabTargetLabel.textContent = detected;
-              }
-              this.announceSpeech(`Etiqueta identificada: ${detected}`);
-              this.showToast('Lectura OCR', detected.substring(0, 40), 'normal');
             }
           } catch (err) {
             this.showToast('Error de Visión', 'No fue posible procesar la imagen enviada.', 'critical');
@@ -2499,9 +2527,16 @@ class EcoEyeDashboard {
       this.dom.btnToggleCamera.addEventListener('click', () => this.toggleScannerCamera());
     }
 
-    // 2. Upload Photo Button
+    // 2. Upload Photo Button — solo disponible en modo Medicamentos
     if (this.dom.btnUploadScannerImg && this.dom.visionFileInput) {
       this.dom.btnUploadScannerImg.addEventListener('click', () => {
+        const mode = this.scanner.activeMode;
+        if (mode === 'currency' || mode === 'depth') {
+          // En billetes y profundidad no hay carga de imagen
+          this.announceSpeech('Carga de imagen no disponible en este módulo. Usa la cámara directamente.');
+          this.showToast('No disponible', 'Este módulo solo funciona con cámara en vivo', 'warning');
+          return;
+        }
         this.dom.visionFileInput.click();
       });
     }
@@ -2511,12 +2546,16 @@ class EcoEyeDashboard {
       this.dom.visionFileInput.addEventListener('change', (e) => {
         const file = e.target.files && e.target.files[0];
         if (file) {
-          if (this.scanner.activeMode === 'depth') {
-            this.processImageFileForDepth(file);
-          } else {
-            this.processImageFileForOcr(file);
+          const mode = this.scanner.activeMode;
+          if (mode === 'currency' || mode === 'depth') {
+            // Bloquear silenciosamente si se llega aquí por otro camino
+            e.target.value = '';
+            return;
           }
+          this.processImageFileForOcr(file);
         }
+        // Reset value so same file can be re-selected
+        e.target.value = '';
       });
     }
 
@@ -2546,12 +2585,31 @@ class EcoEyeDashboard {
 
           // Ajustes según módulo activo (en Profundidad es automático continuo, sin recuadro azul ni botón obturador)
           const isDepth = this.scanner.activeMode === 'depth';
+          const isCurrency = this.scanner.activeMode === 'currency';
           if (this.dom.depthRadarCard) this.dom.depthRadarCard.style.display = isDepth ? 'block' : 'none';
           if (this.dom.scannerTargetReticle) this.dom.scannerTargetReticle.style.display = isDepth ? 'none' : 'block';
           if (this.dom.scannerShutterContainer) this.dom.scannerShutterContainer.style.display = isDepth ? 'none' : 'flex';
           if (this.dom.scannerViewportBox) this.dom.scannerViewportBox.classList.toggle('depth-mode-active', isDepth);
           const scCard = document.querySelector('.scanner-card');
           if (scCard) scCard.classList.toggle('depth-mode-active', isDepth);
+
+          // Ocultar botón "Subir Foto" en billetes y profundidad; solo visible en medicamentos
+          if (this.dom.btnUploadScannerImg) {
+            const showUpload = !isDepth && !isCurrency;
+            this.dom.btnUploadScannerImg.style.display = showUpload ? '' : 'none';
+            this.dom.btnUploadScannerImg.setAttribute('aria-hidden', showUpload ? 'false' : 'true');
+          }
+          // Actualizar hint del placeholder según modo
+          const hintEl = document.getElementById('scanner-placeholder-hint');
+          if (hintEl) {
+            if (isDepth) {
+              hintEl.textContent = 'Toca "Iniciar Cámara" — la detección es automática';
+            } else if (isCurrency) {
+              hintEl.textContent = 'Toca "Iniciar Cámara" y presiona el obturador para escanear';
+            } else {
+              hintEl.textContent = 'Toca "Iniciar Cámara" o sube una fotografía del medicamento';
+            }
+          }
 
           if (isDepth) {
             this.loadObjectDetectionModel();
@@ -2602,11 +2660,19 @@ class EcoEyeDashboard {
 
     // Estado visual inicial (oculto en Profundidad para usar la cámara completa sin obturador manual)
     const isInitialDepth = this.scanner.activeMode === 'depth';
+    const isInitialCurrency = this.scanner.activeMode === 'currency';
     if (this.dom.scannerTargetReticle) this.dom.scannerTargetReticle.style.display = isInitialDepth ? 'none' : 'block';
     if (this.dom.scannerShutterContainer) this.dom.scannerShutterContainer.style.display = isInitialDepth ? 'none' : 'flex';
     if (this.dom.scannerViewportBox) this.dom.scannerViewportBox.classList.toggle('depth-mode-active', isInitialDepth);
     const initialScCard = document.querySelector('.scanner-card');
     if (initialScCard) initialScCard.classList.toggle('depth-mode-active', isInitialDepth);
+
+    // Ocultar "Subir Foto" en el estado inicial según el modo por defecto (currency = oculto)
+    if (this.dom.btnUploadScannerImg) {
+      const showUploadInit = !isInitialDepth && !isInitialCurrency;
+      this.dom.btnUploadScannerImg.style.display = showUploadInit ? '' : 'none';
+      this.dom.btnUploadScannerImg.setAttribute('aria-hidden', showUploadInit ? 'false' : 'true');
+    }
   }
 
   initObstacleDetection() {

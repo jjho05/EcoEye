@@ -2540,7 +2540,7 @@ class EcoEyeDashboard {
           };
           this.showToast('Escáner', `${labels[this.scanner.activeMode] || 'Módulo'} activado`, 'info');
 
-          // Ajustes según módulo activo (en Profundidad se libera toda la cámara sin recuadro azul)
+          // Ajustes según módulo activo (en Profundidad es automático continuo y usa toda la cámara)
           const isDepth = this.scanner.activeMode === 'depth';
           if (this.dom.depthRadarCard) this.dom.depthRadarCard.style.display = isDepth ? 'block' : 'none';
           if (this.dom.scannerTargetReticle) this.dom.scannerTargetReticle.style.display = isDepth ? 'none' : 'block';
@@ -2548,8 +2548,12 @@ class EcoEyeDashboard {
 
           if (isDepth) {
             this.loadObjectDetectionModel();
+            if (this.scanner.isCameraActive) {
+              this.startContinuousDepthLoop();
+            }
           } else {
-            this.clearDepthOverlay();
+            // En los demás módulos (Billetes y Medicamentos) la detección es manual bajo demanda
+            this.stopContinuousDepthLoop();
           }
         });
       });
@@ -2810,6 +2814,10 @@ class EcoEyeDashboard {
       if (!silent) {
         this.showToast('Cámara Activada', 'Visor en tiempo real listo para escaneo', 'normal');
       }
+
+      if (this.scanner.activeMode === 'depth') {
+        this.startContinuousDepthLoop();
+      }
     } catch (err) {
       console.warn('Could not access camera:', err);
       this.scanner.isCameraActive = false;
@@ -2823,6 +2831,7 @@ class EcoEyeDashboard {
   }
 
   stopScannerCamera() {
+    this.stopContinuousDepthLoop();
     if (this.scanner.stream) {
       this.scanner.stream.getTracks().forEach(t => t.stop());
       this.scanner.stream = null;
@@ -2963,6 +2972,42 @@ class EcoEyeDashboard {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
+  }
+
+  startContinuousDepthLoop() {
+    this.scanner.depthContinuous = true;
+    if (!this.scanner.isCameraActive) return;
+
+    let lastInferTime = 0;
+    const loop = (timestamp) => {
+      if (!this.scanner.depthContinuous || this.scanner.activeMode !== 'depth' || !this.scanner.isCameraActive) {
+        return;
+      }
+
+      // Throttle de inferencia a ~10-12 FPS para máxima fluidez y bajo consumo
+      if (timestamp - lastInferTime > 90) {
+        lastInferTime = timestamp;
+        if (this.dom.visionVideoElement && this.dom.visionVideoElement.readyState >= 2) {
+          this.runObjectAndDepthInference(this.dom.visionVideoElement, true);
+        }
+      }
+
+      this.scanner.continuousAnimId = requestAnimationFrame(loop);
+    };
+
+    if (this.scanner.continuousAnimId) {
+      cancelAnimationFrame(this.scanner.continuousAnimId);
+    }
+    this.scanner.continuousAnimId = requestAnimationFrame(loop);
+  }
+
+  stopContinuousDepthLoop() {
+    this.scanner.depthContinuous = false;
+    if (this.scanner.continuousAnimId) {
+      cancelAnimationFrame(this.scanner.continuousAnimId);
+      this.scanner.continuousAnimId = null;
+    }
+    this.clearDepthOverlay();
   }
 
   processImageFileForDepth(file) {
